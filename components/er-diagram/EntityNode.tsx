@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useState, useContext } from 'react';
 import { Handle, Position, NodeProps, useUpdateNodeInternals, useReactFlow } from 'reactflow';
 import { Button } from "@nextui-org/button";
@@ -344,13 +345,18 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                     </div>
                 </div>
                 
-                <ScrollShadow className="flex-1 overflow-auto bg-content1" size={10}>
+                <ScrollShadow 
+                    className={`flex-1 overflow-auto ${isDark ? "bg-content1" : ""}`} 
+                    style={isLightMode ? { backgroundColor: theme.body } : {}}
+                    size={10}
+                >
                         <EntityDetailsTable 
                             properties={data.properties} 
                             keys={data.keys} 
                             getFkInfo={getForeignKeyInfo}
                             onJumpToEntity={(name) => handleJumpToEntity(name, true)}
                             onFocus={() => addActiveEntity(id)} 
+                            themeBody={isLightMode ? theme.body : undefined}
                         />
                 </ScrollShadow>
                 

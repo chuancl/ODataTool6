@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { EntityProperty } from '@/utils/odata-helper';
 import { Key, Link2, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
@@ -8,13 +9,15 @@ export const EntityDetailsTable = ({
     keys, 
     getFkInfo,
     onJumpToEntity,
-    onFocus
+    onFocus,
+    themeBody
 }: { 
     properties: EntityProperty[], 
     keys: string[], 
     getFkInfo: (name: string) => any,
     onJumpToEntity: (name: string) => void,
-    onFocus?: () => void
+    onFocus?: () => void,
+    themeBody?: string
 }) => {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(['name', 'type', 'size', 'attributes', 'defaultValue', 'relation']);
@@ -161,9 +164,12 @@ export const EntityDetailsTable = ({
     });
 
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col" style={themeBody ? { backgroundColor: themeBody } : {}}>
             <table className="w-full text-left border-collapse table-fixed">
-                <thead className="sticky top-0 z-20 bg-default-50/90 backdrop-blur-md shadow-sm border-b border-divider">
+                <thead 
+                    className={`sticky top-0 z-20 backdrop-blur-md shadow-sm border-b border-divider ${themeBody ? '' : 'bg-default-50/90'}`}
+                    style={themeBody ? { backgroundColor: themeBody } : {}}
+                >
                     {table.getHeaderGroups().map(headerGroup => (
                         <tr key={headerGroup.id}>
                             {headerGroup.headers.map(header => (
@@ -229,8 +235,8 @@ export const EntityDetailsTable = ({
                             key={row.id} 
                             className={`
                                 border-b border-divider/40 last:border-0 transition-colors
-                                hover:bg-primary/5
-                                ${idx % 2 === 0 ? 'bg-transparent' : 'bg-default-50/30'}
+                                ${themeBody ? 'hover:bg-black/5' : 'hover:bg-primary/5'}
+                                ${idx % 2 === 0 ? 'bg-transparent' : (themeBody ? 'bg-black/5' : 'bg-default-50/30')}
                             `}
                         >
                             {row.getVisibleCells().map(cell => (
