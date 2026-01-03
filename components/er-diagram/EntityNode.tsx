@@ -28,7 +28,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
   const isDark = data.isDark ?? true; // Get theme from data
   const isLightMode = !isDark;
 
-  // Calculate distinct theme for Light Mode
+  // Calculate distinct theme for the Entity
   const hashCode = Math.abs(generateHashCode(id));
   const theme = getEntityTheme(hashCode);
 
@@ -115,9 +115,11 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
     ? `border-primary shadow-2xl ring-2 ring-primary/30`
     : `ring-2 ring-black scale-[1.02] transition-transform shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)]`;
 
-  // Header: Always vibrant in Light mode
+  // Header: Use Theme Color in both modes for consistency
+  // Dark Mode: Text is Theme Color, BG is faint Theme Color
+  // Light Mode: Text is White, BG is Theme Color
   const headerStyle = isDark 
-    ? { className: `bg-primary/10 text-primary border-b border-divider` }
+    ? { className: `border-b border-divider`, style: { color: theme.header, backgroundColor: `${theme.header}15` } }
     : { className: `text-white border-b border-black/10`, style: { backgroundColor: theme.header } };
 
   return (
@@ -152,7 +154,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             className={`p-2 font-bold text-center text-sm flex items-center justify-center gap-2 group transition-colors ${headerStyle.className}`}
             style={headerStyle.style}
         >
-          <Table2 size={14} className={isDark ? "" : "text-white"} strokeWidth={isDark ? 2 : 3} />
+          <Table2 size={14} className={isDark ? "" : "text-white"} style={isDark ? { color: theme.header } : {}} strokeWidth={isDark ? 2 : 3} />
           <span 
               className="hover:underline underline-offset-2 decoration-current cursor-pointer"
               onClick={(e) => { e.stopPropagation(); addActiveEntity(id); }}
@@ -171,45 +173,72 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             const fkInfo = getForeignKeyInfo(prop.name);
             const isOpen = activePopoverProp === prop.name;
 
+            // --- COLOR LOGIC ---
+            // 1. Calculate FK Target Color
+            let fkTargetColor = null;
+            if (fkInfo?.targetEntity) {
+                const fkHashCode = Math.abs(generateHashCode(fkInfo.targetEntity));
+                fkTargetColor = getEntityTheme(fkHashCode).header;
+            }
+
+            // 2. Determine Property Text Color
+            // Priority: PK Color > FK Color > Default
+            let propTextColor = undefined;
+            if (isKey) {
+                propTextColor = theme.header; // Use Current Entity Color
+            } else if (fkTargetColor) {
+                propTextColor = fkTargetColor; // Use Target Entity Color
+            }
+
             // Light mode specific property styling
             let propContainerClass = "text-[10px] flex items-center justify-between p-1.5 rounded-sm border-l-2 transition-colors group ";
             let textClass = "";
             let metaClass = "";
+            let rowStyle: React.CSSProperties = {};
             
             if (isDark) {
-                propContainerClass += isKey ? 'bg-warning/10 text-warning-700 font-semibold ' : 'text-default-600 ';
-                if (!fieldColor) propContainerClass += 'border-transparent';
+                propContainerClass += isKey ? 'font-semibold ' : 'text-default-600 ';
+                // Dynamic background for PK/FK to match text color faintly
+                if (isKey) {
+                    rowStyle.backgroundColor = `${theme.header}10`; // Very faint background
+                } else if (!fieldColor) {
+                    propContainerClass += 'border-transparent';
+                }
+                
                 metaClass = "text-default-400 opacity-70";
             } else {
-                // Light Mode - Use Theme Colors
+                // Light Mode
                 propContainerClass += "border-transparent hover:bg-black/5 "; 
-                // Use distinct color for PK, standard theme text for others
                 textClass = isKey ? "font-extrabold" : "font-medium";
                 metaClass = "opacity-60";
             }
 
-            // Dynamic text color for light mode
-            const textColorStyle = isLightMode ? (isKey ? theme.header : theme.text) : undefined;
+            // Override text color if we have a specific propTextColor (PK or FK)
+            const finalTextColor = propTextColor || (isLightMode ? theme.text : undefined);
+            
+            // Apply field highlight color if exists (e.g. from hovering lines)
+            if (fieldColor) {
+                rowStyle.borderColor = fieldColor;
+                rowStyle.backgroundColor = isDark ? `${fieldColor}15` : `${fieldColor}10`;
+            }
 
             return (
               <div 
                 key={prop.name} 
                 className={propContainerClass}
-                style={fieldColor 
-                    ? { borderColor: fieldColor, backgroundColor: isDark ? `${fieldColor}15` : `${fieldColor}10` } 
-                    : {}
-                }
+                style={rowStyle}
               >
                 <span className="flex items-center gap-1.5 truncate max-w-[140px]">
-                  {isKey && <Key size={10} className={`shrink-0 ${isDark ? "text-amber-600" : ""}`} style={{ color: isLightMode ? theme.header : undefined }} strokeWidth={2.5} />}
-                  {fkInfo && <Link2 size={10} className={`shrink-0 ${isDark ? "text-blue-600" : ""}`} style={{ color: isLightMode ? theme.header : undefined }} strokeWidth={2.5} />}
+                  {/* Icons use the same color as the text */}
+                  {isKey && <Key size={10} className="shrink-0" style={{ color: propTextColor }} strokeWidth={2.5} />}
+                  {fkInfo && <Link2 size={10} className="shrink-0" style={{ color: propTextColor }} strokeWidth={2.5} />}
                   
                   <Popover placement="right" showArrow offset={10} isOpen={isOpen} onOpenChange={(open) => setActivePopoverProp(open ? prop.name : null)}>
                       <PopoverTrigger>
                           <span 
-                              className={`cursor-pointer transition-colors hover:underline decoration-dotted ${isDark ? 'hover:text-primary' : ''} ${textClass}`} 
+                              className={`cursor-pointer transition-colors hover:underline decoration-dotted ${!propTextColor && isDark ? 'hover:text-primary' : ''} ${textClass}`} 
                               style={{ 
-                                  color: fieldColor || textColorStyle, 
+                                  color: finalTextColor, 
                                   fontWeight: fieldColor || isKey ? 700 : 500 
                               }}
                               onClick={(e) => e.stopPropagation()}
@@ -219,7 +248,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                       </PopoverTrigger>
                       <PopoverContent className={`p-3 w-[280px] ${!isDark ? "border-2" : ""}`} style={!isDark ? { borderColor: theme.border } : {}} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
                           <div className="text-xs flex flex-col gap-3">
-                              {/* ... Popover Content remains same ... */}
+                              {/* ... Popover Content ... */}
                               <div className="font-bold flex items-center justify-between border-b border-divider pb-2">
                                   <span className="flex items-center gap-2 text-sm">
                                       {prop.name}
@@ -296,7 +325,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                       {data.navigationProperties.slice(0, 8).map((nav: any) => {
                           const cleanType = nav.targetType?.replace('Collection(', '').replace(')', '').split('.').pop() || '';
                           
-                          // --- Change: Calculate target entity color ---
+                          // Calculate target entity color for Nav Item
                           const targetHashCode = Math.abs(generateHashCode(cleanType));
                           const targetTheme = getEntityTheme(targetHashCode);
                           const targetColor = targetTheme.header;
@@ -304,7 +333,6 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                           return (
                               <div 
                                   key={nav.name} 
-                                  // Removed text-secondary-700 from class
                                   className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20" : "hover:bg-white/40 bg-white/20 border border-transparent hover:shadow-sm"}`}
                                   onClick={(e) => { e.stopPropagation(); handleJumpToEntity(cleanType, false); }}
                                   title={`Jump to ${cleanType}`}
