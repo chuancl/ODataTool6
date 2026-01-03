@@ -1,0 +1,392 @@
+
+import { useState, useCallback } from 'react';
+import { useDisclosure } from "@nextui-org/use-disclosure";
+import { 
+    ODataVersion, ParsedSchema, EntityType, 
+    generateSAPUI5Code, generateCSharpDeleteCode, generateJavaDeleteCode,
+    generateCSharpUpdateCode, generateJavaUpdateCode,
+    generateCSharpCreateCode, generateJavaCreateCode
+} from '@/utils/odata-helper';
+import { EntityContextTask, collectSelectedItemsWithContext, resolveItemUri } from '@/utils/odata-traversal';
+import { useToast } from '@/components/ui/ToastContext';
+
+interface ActionState {
+    codePreview: string | { url: string, sapui5: string, csharp: string, java: string };
+    modalAction: 'delete' | 'update' | 'create';
+    itemsToProcess: (EntityContextTask & { changes?: any })[]; 
+}
+
+export const useEntityActions = (
+    url: string,
+    version: ODataVersion,
+    schema: ParsedSchema | null,
+    selectedEntity: string,
+    currentSchema: EntityType | null,
+    refreshQuery: () => Promise<void>,
+    setRawJsonResult: (val: string) => void,
+    setRawXmlResult: (val: string) => void
+) => {
+    const { isOpen, onOpen, onOpenChange } = useDisclosure(); 
+    const [state, setState] = useState<ActionState>({
+        codePreview: '',
+        modalAction: 'delete',
+        itemsToProcess: []
+    });
+    const [isExecuting, setIsExecuting] = useState(false);
+    
+    // 集成 Toast
+    const toast = useToast();
+
+    // --- 辅助：构建 Update Payload ---
+    const buildUpdatePayload = (originalItem: any, changes: any, version: ODataVersion, schema: ParsedSchema | null, entityType: EntityType | null) => {
+        // 1. 深拷贝 changes，避免修改原始引用
+        const payload = JSON.parse(JSON.stringify(changes));
+
+        // 2. 清理可能存在的系统字段 (防止误传)
+        delete payload.__metadata;
+        delete payload.__deferred;
+        delete payload.__selected;
+        delete payload['@odata.context'];
+        delete payload['@odata.etag'];
+
+        // 3. 注入类型信息 (根据版本)
+        if (version === 'V4') {
+            // --- OData V4 ---
+            // 优先使用原数据中的 @odata.type
+            let typeName = originalItem?.['@odata.type'];
+            // 兜底：从 Schema 推断
+            if (!typeName && schema && entityType) {
+                // V4 格式通常是 "#Namespace.TypeName"
+                typeName = schema.namespace ? `#${schema.namespace}.${entityType.name}` : `#${entityType.name}`;
+            }
+            if (typeName) {
+                payload['@odata.type'] = typeName;
+            }
+        } else {
+            // --- OData V2 / V3 ---
+            // 必须使用 __metadata: { type: "..." }
+            let typeName = originalItem?.__metadata?.type;
+            
+            // 兜底：从 Schema 推断
+            if (!typeName && schema && entityType) {
+                typeName = schema.namespace ? `${schema.namespace}.${entityType.name}` : entityType.name;
+            }
+
+            if (typeName) {
+                // 仅注入 type，不要带 uri 等其他 metadata，防止服务端校验失败
+                payload.__metadata = { type: typeName };
+            }
+        }
+
+        return payload;
+    };
+
+    // --- 1. 准备删除 ---
+    const prepareDelete = useCallback((rootData: any[]) => {
+        const tasks = collectSelectedItemsWithContext(rootData, selectedEntity, currentSchema, schema);
+
+        if (!tasks || tasks.length === 0) {
+            toast.warning("请先勾选需要删除的数据\n(Please select rows to delete first)");
+            return;
+        }
+
+        const predicates: string[] = [];
+        const urlList: string[] = [];
+        const baseUrl = url.endsWith('/') ? url : `${url}/`;
+
+        tasks.forEach(task => {
+            const { url: deleteUrl, predicate } = resolveItemUri(task.item, baseUrl, task.entitySet, task.entityType);
+            if (deleteUrl) {
+                urlList.push(`DELETE ${deleteUrl}`);
+                predicates.push(predicate || '(Unknown Key)');
+            } else {
+                urlList.push(`// SKIP: Cannot determine URL for item in ${task.entitySet}`);
+            }
+        });
+
+        const codeSap = generateSAPUI5Code('delete', selectedEntity, { keyPredicates: predicates }, version);
+        const codeCSharp = generateCSharpDeleteCode(selectedEntity, predicates, baseUrl, version);
+        const codeJava = generateJavaDeleteCode(selectedEntity, predicates, version, baseUrl);
+
+        setState({
+            itemsToProcess: tasks,
+            modalAction: 'delete',
+            codePreview: {
+                url: urlList.join('\n'),
+                sapui5: codeSap,
+                csharp: codeCSharp,
+                java: codeJava
+            }
+        });
+        onOpen();
+    }, [url, version, schema, selectedEntity, currentSchema, onOpen, toast]);
+
+    // --- 2. 准备更新 ---
+    const prepareUpdate = useCallback((updates: { item: any, changes: any }[]) => {
+        if (!updates || updates.length === 0) {
+            toast.warning("请先修改数据\n(Please modify data first)");
+            return;
+        }
+
+        const baseUrl = url.endsWith('/') ? url : `${url}/`;
+        const urlList: string[] = [];
+        const sapUpdates: any[] = [];
+        const csUpdates: any[] = [];
+
+        // 转换为任务对象
+        const tasks: (EntityContextTask & { changes?: any })[] = updates.map(u => {
+            // 推断上下文
+            const payload = buildUpdatePayload(u.item, u.changes, version, schema, currentSchema);
+            
+            return {
+                item: u.item,
+                changes: payload,
+                entitySet: selectedEntity, // 默认上下文，后续会尝试自愈
+                entityType: currentSchema
+            };
+        });
+
+        tasks.forEach(task => {
+            // 尝试获取准确 URL
+            let { url: requestUrl, predicate } = resolveItemUri(task.item, baseUrl, null, null);
+            if (!requestUrl) {
+                // 回退到当前选中的实体集
+                const fallback = resolveItemUri(task.item, baseUrl, selectedEntity, currentSchema);
+                requestUrl = fallback.url;
+                predicate = fallback.predicate;
+            }
+
+            if (requestUrl) {
+                // 预览信息
+                let headerInfo = "";
+                if (version === 'V3') headerInfo = "Content-Type: application/json;odata=verbose\nDataServiceVersion: 3.0";
+                else if (version === 'V4') headerInfo = "Content-Type: application/json\nOData-Version: 4.0";
+                else headerInfo = "Content-Type: application/json\nDataServiceVersion: 2.0";
+
+                urlList.push(`PATCH ${requestUrl}\n${headerInfo}\n\n${JSON.stringify(task.changes, null, 2)}`);
+                
+                if (predicate) {
+                    sapUpdates.push({ predicate: predicate, changes: task.changes });
+                    csUpdates.push({ predicate: predicate, changes: task.changes });
+                }
+            } else {
+                urlList.push(`// SKIP: Cannot determine URL for item (Missing Key/Metadata)`);
+            }
+        });
+
+        const codeSap = generateSAPUI5Code('update', selectedEntity, { updates: sapUpdates }, version);
+        const codeCSharp = generateCSharpUpdateCode(selectedEntity, csUpdates, baseUrl, version);
+        const codeJava = generateJavaUpdateCode(selectedEntity, csUpdates, version, baseUrl);
+
+        setState({
+            itemsToProcess: tasks,
+            modalAction: 'update',
+            codePreview: {
+                url: urlList.join('\n\n'),
+                sapui5: codeSap,
+                csharp: codeCSharp,
+                java: codeJava
+            }
+        });
+        
+        onOpen();
+
+    }, [url, version, selectedEntity, currentSchema, schema, onOpen, toast]);
+
+    // --- 3. 准备创建 (New) ---
+    const prepareCreate = useCallback((newItems: any[]) => {
+        if (!newItems || newItems.length === 0) {
+            toast.warning("没有需要创建的数据 (No items to create)");
+            return;
+        }
+
+        const baseUrl = url.endsWith('/') ? url : `${url}/`;
+        const urlList: string[] = [];
+        
+        // 构造任务对象
+        const tasks: (EntityContextTask & { changes?: any })[] = newItems.map(item => {
+             // 清理 UI 选中状态和内部字段
+             const cleanItem: any = {};
+             Object.entries(item).forEach(([k, v]) => {
+                 // 移除所有以 __ 开头的内部字段 (e.g., __selected, __id, __metadata)
+                 if (!k.startsWith('__')) {
+                     cleanItem[k] = v;
+                 }
+             });
+
+             const payload = buildUpdatePayload(null, cleanItem, version, schema, currentSchema);
+             return {
+                 item: null, // New items don't have existing reference
+                 changes: payload,
+                 entitySet: selectedEntity,
+                 entityType: currentSchema
+             };
+        });
+
+        // 预览代码生成
+        const createUrl = `${baseUrl}${selectedEntity}`;
+        let headerInfo = "";
+        if (version === 'V4') headerInfo = "Content-Type: application/json\nOData-Version: 4.0";
+        else headerInfo = "Content-Type: application/json\nDataServiceVersion: 2.0";
+        
+        tasks.forEach(t => {
+            urlList.push(`POST ${createUrl}\n${headerInfo}\n\n${JSON.stringify(t.changes, null, 2)}`);
+        });
+
+        const codeSap = generateSAPUI5Code('create', selectedEntity, { dataArray: tasks.map(t => t.changes) }, version);
+        const codeCSharp = generateCSharpCreateCode(selectedEntity, tasks.map(t => t.changes), baseUrl, version);
+        const codeJava = generateJavaCreateCode(selectedEntity, tasks.map(t => t.changes), version, baseUrl);
+
+        setState({
+            itemsToProcess: tasks,
+            modalAction: 'create',
+            codePreview: {
+                url: urlList.join('\n\n'),
+                sapui5: codeSap,
+                csharp: codeCSharp,
+                java: codeJava
+            }
+        });
+
+        onOpen();
+    }, [url, version, selectedEntity, currentSchema, schema, onOpen, toast]);
+
+
+    // --- 4. 执行批量请求 ---
+    const executeBatch = async () => {
+        if (state.itemsToProcess.length === 0) return;
+        setIsExecuting(true);
+
+        const baseUrl = url.endsWith('/') ? url : `${url}/`;
+        const results: string[] = [];
+        const errors: string[] = []; // Collect error messages for toast
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const task of state.itemsToProcess) {
+            let requestUrl = '';
+            let method = '';
+
+            if (state.modalAction === 'create') {
+                // Create: POST to EntitySet URL
+                requestUrl = `${baseUrl}${task.entitySet}`;
+                method = 'POST';
+            } else {
+                // Delete/Update: Need specific Item URL
+                let { url: resolvedUrl } = resolveItemUri(task.item, baseUrl, task.entitySet, task.entityType);
+                if (!resolvedUrl) {
+                    resolvedUrl = resolveItemUri(task.item, baseUrl, selectedEntity, currentSchema).url;
+                }
+                requestUrl = resolvedUrl || '';
+                method = state.modalAction === 'delete' ? 'DELETE' : 'PATCH';
+            }
+            
+            if (!requestUrl) {
+                results.push(`SKIP: Unable to determine URL for item`);
+                errors.push(`Missing URL for item`);
+                failCount++;
+                continue;
+            }
+
+            try {
+                const headers: Record<string, string> = {
+                    'Accept': 'application/json'
+                };
+
+                // --- 严格的版本控制 Header 注入 ---
+                if (version === 'V4') {
+                    // OData V4
+                    headers['OData-Version'] = '4.0';
+                    headers['OData-MaxVersion'] = '4.0';
+                    headers['Content-Type'] = 'application/json'; // V4 默认 JSON
+                } else if (version === 'V3') {
+                    // OData V3
+                    headers['DataServiceVersion'] = '3.0'; 
+                    headers['MaxDataServiceVersion'] = '3.0';
+                    headers['Content-Type'] = state.modalAction === 'delete' ? 'application/json' : 'application/json;odata=verbose';
+                    headers['Accept'] = 'application/json;odata=verbose';
+                } else {
+                    // OData V2
+                    headers['DataServiceVersion'] = '2.0'; 
+                    headers['MaxDataServiceVersion'] = '2.0'; // 有些服务接受 3.0
+                    headers['Content-Type'] = 'application/json';
+                }
+                
+                const fetchOptions: RequestInit = {
+                    method: method,
+                    headers: headers
+                };
+
+                if (state.modalAction !== 'delete' && task.changes) {
+                    fetchOptions.body = JSON.stringify(task.changes);
+                }
+
+                const res = await fetch(requestUrl, fetchOptions);
+                
+                if (res.ok || res.status === 201 || res.status === 204) {
+                    results.push(`SUCCESS (${method}): ${requestUrl}`);
+                    successCount++;
+                } else {
+                    const errText = await res.text();
+                    let errDisplay = errText.substring(0, 300);
+                    let toastMsg = `HTTP ${res.status}`;
+                    
+                    try {
+                         // 尝试美化 JSON 错误
+                         const jsonErr = JSON.parse(errText);
+                         errDisplay = JSON.stringify(jsonErr, null, 2);
+                         // 提取 OData 错误信息
+                         toastMsg = jsonErr.error?.message?.value || jsonErr.error?.message || jsonErr["odata.error"]?.message?.value || JSON.stringify(jsonErr);
+                    } catch(e) {
+                         toastMsg = errText.substring(0, 200); // 纯文本错误截断
+                    }
+
+                    results.push(`FAILED (${res.status}): ${requestUrl}\nResponse: ${errDisplay}`);
+                    errors.push(toastMsg);
+                    failCount++;
+                }
+            } catch (e: any) {
+                const msg = e.message || String(e);
+                results.push(`ERROR: ${requestUrl} - ${msg}`);
+                errors.push(msg);
+                failCount++;
+            }
+        }
+
+        setRawJsonResult(`// 批量操作报告 (Batch Operation Report):\n// 成功: ${successCount}, 失败: ${failCount}\n\n${results.join('\n')}`);
+        
+        // 汇总 Toast 提示
+        if (failCount === 0) {
+            toast.success(`批量操作成功: ${successCount} 项\n(Batch operation successful)`);
+        } else {
+            const errorDetails = errors.slice(0, 3).join('\n\n');
+            const suffix = errors.length > 3 ? `\n\n... (+${errors.length - 3} more errors)` : '';
+            const fullMsg = `${errorDetails}${suffix}`;
+
+            if (successCount === 0) {
+                toast.error(`操作全部失败 (${failCount} Failed):\n${fullMsg}`);
+            } else {
+                toast.warning(`部分成功 (${successCount}), 失败 (${failCount}):\n${fullMsg}`);
+            }
+        }
+
+        // 仅在非 Create 操作时尝试刷新查询（因为 Create 通常在表尾，且查询条件可能不包含新数据）
+        // 不过刷新一下也无妨
+        await refreshQuery(); 
+        
+        setIsExecuting(false);
+        setState(prev => ({ ...prev, itemsToProcess: [] }));
+    };
+
+    return {
+        isOpen,
+        onOpenChange,
+        codePreview: state.codePreview,
+        modalAction: state.modalAction,
+        prepareDelete,
+        prepareUpdate,
+        prepareCreate,
+        executeBatch,
+        isExecuting
+    };
+};
