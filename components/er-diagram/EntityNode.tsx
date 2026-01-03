@@ -289,13 +289,16 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                       <span>Navigation</span>
                       <div className={`h-px flex-1 ${isDark ? "bg-divider" : "bg-black/10"}`}></div>
                   </div>
-                  <div className={`rounded-md p-1 flex flex-col gap-1 ${isDark ? 'bg-secondary/10 border border-secondary/10' : 'bg-white/50 border border-black/5'}`}>
+                  <div 
+                    className={`rounded-md p-1 flex flex-col gap-1 ${isDark ? 'bg-secondary/10 border border-secondary/10' : 'bg-transparent border border-black/5'}`}
+                    style={isLightMode ? { backgroundColor: theme.nav } : {}}
+                  >
                       {data.navigationProperties.slice(0, 8).map((nav: any) => {
                           const cleanType = nav.targetType?.replace('Collection(', '').replace(')', '').split('.').pop();
                           return (
                               <div 
                                   key={nav.name} 
-                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20 text-secondary-700" : "hover:bg-white bg-white/40 border border-transparent hover:shadow-sm"}`}
+                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20 text-secondary-700" : "hover:bg-white/40 bg-white/20 border border-transparent hover:shadow-sm"}`}
                                   style={isLightMode ? { color: theme.text } : {}}
                                   onClick={(e) => { e.stopPropagation(); handleJumpToEntity(cleanType, false); }}
                                   title={`Jump to ${cleanType}`}

@@ -33,36 +33,37 @@ const BOLD_PALETTE = [
  * 
  * Header: 指定深色
  * Body:   协调的同色系中浅色 (降低饱和度，避免荧光感，更护眼且协调)
+ * Nav:    导航区域颜色 (比 Body 深，比 Header 浅)
  * Border: 指定灰色循环 (aaaaaa, bbbbbb, cccccc, dddddd)
  * Text:   指定深色循环 (1a2a3a, 2a3a4a, 3a4a5a, 4a5a6a)
  */
 const ENTITY_THEMES = [
-    // 1. Purple (Body: Softer Lavender)
-    { header: '#9966ff', body: '#e9dfff', border: '#aaaaaa', text: '#1a2a3a' },
+    // 1. Purple
+    { header: '#9966ff', body: '#e9dfff', nav: '#d8b4fe', border: '#aaaaaa', text: '#1a2a3a' },
     
-    // 2. Indigo (Body: Softer Periwinkle)
-    { header: '#6666ff', body: '#dbeafe', border: '#bbbbbb', text: '#2a3a4a' },
+    // 2. Indigo
+    { header: '#6666ff', body: '#dbeafe', nav: '#c7d2fe', border: '#bbbbbb', text: '#2a3a4a' },
     
-    // 3. Blue (Body: Softer Light Blue)
-    { header: '#6699ff', body: '#cfe4fc', border: '#cccccc', text: '#3a4a5a' },
+    // 3. Blue
+    { header: '#6699ff', body: '#cfe4fc', nav: '#a5cfff', border: '#cccccc', text: '#3a4a5a' },
     
-    // 4. Amber/Yellow (Body: Softer Cream/Wheat)
-    { header: '#ffcc66', body: '#fef3c7', border: '#dddddd', text: '#4a5a6a' },
+    // 4. Amber/Yellow
+    { header: '#ffcc66', body: '#fef3c7', nav: '#fde68a', border: '#dddddd', text: '#4a5a6a' },
     
-    // 5. Orange (Body: Softer Peach)
-    { header: '#ff9966', body: '#ffe4cc', border: '#aaaaaa', text: '#1a2a3a' },
+    // 5. Orange
+    { header: '#ff9966', body: '#ffe4cc', nav: '#ffdcb3', border: '#aaaaaa', text: '#1a2a3a' },
     
-    // 6. Red (Body: Softer Rose)
-    { header: '#ff6666', body: '#fee2e2', border: '#bbbbbb', text: '#2a3a4a' },
+    // 6. Red
+    { header: '#ff6666', body: '#fee2e2', nav: '#fecaca', border: '#bbbbbb', text: '#2a3a4a' },
     
-    // 7. Teal (Body: Softer Mint - Fixed Neon issue)
-    { header: '#14b8a6', body: '#ccfbf1', border: '#cccccc', text: '#3a4a5a' },
+    // 7. Teal
+    { header: '#14b8a6', body: '#ccfbf1', nav: '#99f6e4', border: '#cccccc', text: '#3a4a5a' },
     
-    // 8. Lime (Body: Softer Tea Green - Fixed Neon issue)
-    { header: '#84cc16', body: '#dceeb8', border: '#dddddd', text: '#4a5a6a' },
+    // 8. Lime
+    { header: '#84cc16', body: '#dceeb8', nav: '#c6ec7e', border: '#dddddd', text: '#4a5a6a' },
 
-    // 9. Bright Blue (Body: Softer Sky)
-    { header: '#3b82f6', body: '#d1e5fd', border: '#aaaaaa', text: '#1a2a3a' },
+    // 9. Bright Blue
+    { header: '#3b82f6', body: '#d1e5fd', nav: '#93c5fd', border: '#aaaaaa', text: '#1a2a3a' },
 ];
 
 export const getColor = (index: number, isBoldMode: boolean = false) => {
