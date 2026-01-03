@@ -32,37 +32,37 @@ const BOLD_PALETTE = [
  * 实体主题配置 (Entity Themes)
  * 
  * Header: 指定深色
- * Body:   协调的同色系中浅色 (避免太浅看不清，也避免太深影响文字阅读)
+ * Body:   协调的同色系中浅色 (降低饱和度，避免荧光感，更护眼且协调)
  * Border: 指定灰色循环 (aaaaaa, bbbbbb, cccccc, dddddd)
  * Text:   指定深色循环 (1a2a3a, 2a3a4a, 3a4a5a, 4a5a6a)
  */
 const ENTITY_THEMES = [
-    // 1. Purple
-    { header: '#9966ff', body: '#e0ccff', border: '#aaaaaa', text: '#1a2a3a' },
+    // 1. Purple (Body: Softer Lavender)
+    { header: '#9966ff', body: '#e9dfff', border: '#aaaaaa', text: '#1a2a3a' },
     
-    // 2. Indigo
-    { header: '#6666ff', body: '#ccccff', border: '#bbbbbb', text: '#2a3a4a' },
+    // 2. Indigo (Body: Softer Periwinkle)
+    { header: '#6666ff', body: '#dbeafe', border: '#bbbbbb', text: '#2a3a4a' },
     
-    // 3. Blue
-    { header: '#6699ff', body: '#99ccff', border: '#cccccc', text: '#3a4a5a' },
+    // 3. Blue (Body: Softer Light Blue)
+    { header: '#6699ff', body: '#cfe4fc', border: '#cccccc', text: '#3a4a5a' },
     
-    // 4. Amber/Yellow (Body 稍微加深一点点，保证在亮屏下可见)
-    { header: '#ffcc66', body: '#ffe6b3', border: '#dddddd', text: '#4a5a6a' },
+    // 4. Amber/Yellow (Body: Softer Cream/Wheat)
+    { header: '#ffcc66', body: '#fef3c7', border: '#dddddd', text: '#4a5a6a' },
     
-    // 5. Orange
-    { header: '#ff9966', body: '#ffcc99', border: '#aaaaaa', text: '#1a2a3a' },
+    // 5. Orange (Body: Softer Peach)
+    { header: '#ff9966', body: '#ffe4cc', border: '#aaaaaa', text: '#1a2a3a' },
     
-    // 6. Red
-    { header: '#ff6666', body: '#ffb3b3', border: '#bbbbbb', text: '#2a3a4a' },
+    // 6. Red (Body: Softer Rose)
+    { header: '#ff6666', body: '#fee2e2', border: '#bbbbbb', text: '#2a3a4a' },
     
-    // 7. Teal
-    { header: '#14b8a6', body: '#99f6e4', border: '#cccccc', text: '#3a4a5a' },
+    // 7. Teal (Body: Softer Mint - Fixed Neon issue)
+    { header: '#14b8a6', body: '#ccfbf1', border: '#cccccc', text: '#3a4a5a' },
     
-    // 8. Lime
-    { header: '#84cc16', body: '#bef264', border: '#dddddd', text: '#4a5a6a' },
+    // 8. Lime (Body: Softer Tea Green - Fixed Neon issue)
+    { header: '#84cc16', body: '#dceeb8', border: '#dddddd', text: '#4a5a6a' },
 
-    // 9. Bright Blue
-    { header: '#3b82f6', body: '#93c5fd', border: '#aaaaaa', text: '#1a2a3a' },
+    // 9. Bright Blue (Body: Softer Sky)
+    { header: '#3b82f6', body: '#d1e5fd', border: '#aaaaaa', text: '#1a2a3a' },
 ];
 
 export const getColor = (index: number, isBoldMode: boolean = false) => {
