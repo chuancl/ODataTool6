@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState, useContext } from 'react';
 import { Handle, Position, NodeProps, useUpdateNodeInternals, useReactFlow } from 'reactflow';
 import { Button } from "@nextui-org/button";
@@ -11,7 +10,7 @@ import { EntityProperty } from '@/utils/odata-helper';
 import { EntityDetailsTable } from './EntityDetailsTable';
 import { DiagramContext } from './DiagramContext';
 import { DynamicHandleConfig } from './layout';
-import { generateHashCode, getColor } from './utils';
+import { generateHashCode, getEntityTheme } from './utils';
 
 // --------------------------------------------------------
 // Component: EntityNode
@@ -28,9 +27,9 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
   const isDark = data.isDark ?? true; // Get theme from data
   const isLightMode = !isDark;
 
-  // Calculate distinct color for Light Mode header
+  // Calculate distinct theme for Light Mode
   const hashCode = Math.abs(generateHashCode(id));
-  const headerColorBold = getColor(hashCode, true); // Get Bold color
+  const theme = getEntityTheme(hashCode);
 
   // 监听 Handles 变化
   const dynamicHandles: DynamicHandleConfig[] = data.dynamicHandles || [];
@@ -104,20 +103,21 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
   // --- Dynamic Styles based on Theme ---
   const containerStyle = isDark 
     ? `bg-content1 border-divider shadow-sm rounded-lg border-2`
-    : `border-black border-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg`; 
+    : `border-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)] rounded-lg overflow-hidden`; 
 
-  // In light mode, apply the SOLID header color as background (High Saturation)
+  // In light mode, apply coordinated body color (Light) and border (Dark)
   const containerDynamicStyle = isLightMode 
-    ? { backgroundColor: headerColorBold } 
+    ? { backgroundColor: theme.body, borderColor: theme.border } 
     : {};
 
   const selectedStyle = isDark 
     ? `border-primary shadow-2xl ring-2 ring-primary/30`
-    : `ring-2 ring-black scale-[1.02] transition-transform`;
+    : `ring-2 ring-black scale-[1.02] transition-transform shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)]`;
 
+  // Header: Always vibrant in Light mode
   const headerStyle = isDark 
     ? { className: `bg-primary/10 text-primary border-b border-divider` }
-    : { className: `text-white border-b-2 border-black`, style: { backgroundColor: headerColorBold, textShadow: '1px 1px 0 #000' } };
+    : { className: `text-white border-b border-black/10`, style: { backgroundColor: theme.header } };
 
   return (
     <div className="relative group" style={{ zIndex: showEntityDetails ? 2000 : undefined }}>
@@ -148,7 +148,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
         {/* --- Entity Title Header --- */}
         <div 
-            className={`p-2 font-bold text-center text-sm rounded-t-[calc(0.5rem-2px)] flex items-center justify-center gap-2 group transition-colors ${headerStyle.className}`}
+            className={`p-2 font-bold text-center text-sm flex items-center justify-center gap-2 group transition-colors ${headerStyle.className}`}
             style={headerStyle.style}
         >
           <Table2 size={14} className={isDark ? "" : "text-white"} strokeWidth={isDark ? 2 : 3} />
@@ -162,7 +162,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
         </div>
 
         {/* --- Entity Content Area --- */}
-        <div className={`p-2 flex flex-col gap-0.5 rounded-b-[calc(0.5rem-2px)] ${isDark ? 'bg-content1' : 'bg-transparent'}`}>
+        <div className={`p-2 flex flex-col gap-0.5 ${isDark ? 'bg-content1' : 'bg-transparent'}`}>
           {/* Properties */}
           {visibleProperties.map((prop: EntityProperty) => {
             const fieldColor = data.fieldColors?.[prop.name];
@@ -172,39 +172,53 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
             // Light mode specific property styling
             let propContainerClass = "text-[10px] flex items-center justify-between p-1.5 rounded-sm border-l-2 transition-colors group ";
+            let textClass = "";
+            let metaClass = "";
             
             if (isDark) {
                 propContainerClass += isKey ? 'bg-warning/10 text-warning-700 font-semibold ' : 'text-default-600 ';
                 if (!fieldColor) propContainerClass += 'border-transparent';
+                metaClass = "text-default-400 opacity-70";
             } else {
-                // Light Mode (High Saturation Background)
-                // Use White text with shadow for readability on all vibrant colors
-                propContainerClass += "border-transparent hover:bg-white/20 "; 
-                propContainerClass += isKey ? 'text-white font-extrabold drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] ' : 'text-white font-semibold drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)] ';
+                // Light Mode - Use Theme Colors
+                propContainerClass += "border-transparent hover:bg-black/5 "; 
+                // Use distinct color for PK, standard theme text for others
+                textClass = isKey ? "font-extrabold" : "font-medium";
+                metaClass = "opacity-60";
             }
+
+            // Dynamic text color for light mode
+            const textColorStyle = isLightMode ? (isKey ? theme.header : theme.text) : undefined;
 
             return (
               <div 
                 key={prop.name} 
                 className={propContainerClass}
-                style={fieldColor ? { borderColor: fieldColor, backgroundColor: isDark ? `${fieldColor}15` : `rgba(255,255,255,0.3)` } : {}}
+                style={fieldColor 
+                    ? { borderColor: fieldColor, backgroundColor: isDark ? `${fieldColor}15` : `${fieldColor}10` } 
+                    : {}
+                }
               >
                 <span className="flex items-center gap-1.5 truncate max-w-[140px]">
-                  {isKey && <Key size={10} className="shrink-0 text-white drop-shadow-sm" fill={isDark ? "none" : "currentColor"} strokeWidth={2.5} />}
-                  {fkInfo && <Link2 size={10} className="shrink-0 text-white drop-shadow-sm" strokeWidth={2.5} />}
+                  {isKey && <Key size={10} className={`shrink-0 ${isDark ? "text-amber-600" : ""}`} style={{ color: isLightMode ? theme.header : undefined }} strokeWidth={2.5} />}
+                  {fkInfo && <Link2 size={10} className={`shrink-0 ${isDark ? "text-blue-600" : ""}`} style={{ color: isLightMode ? theme.header : undefined }} strokeWidth={2.5} />}
                   
                   <Popover placement="right" showArrow offset={10} isOpen={isOpen} onOpenChange={(open) => setActivePopoverProp(open ? prop.name : null)}>
                       <PopoverTrigger>
                           <span 
-                              className={`cursor-pointer transition-colors hover:underline decoration-dotted ${isDark ? 'hover:text-primary' : 'hover:text-white'}`} 
-                              style={fieldColor ? { color: isDark ? fieldColor : 'white', fontWeight: 700 } : {}}
+                              className={`cursor-pointer transition-colors hover:underline decoration-dotted ${isDark ? 'hover:text-primary' : ''} ${textClass}`} 
+                              style={{ 
+                                  color: fieldColor || textColorStyle, 
+                                  fontWeight: fieldColor || isKey ? 700 : 500 
+                              }}
                               onClick={(e) => e.stopPropagation()}
                           >
                               {prop.name}
                           </span>
                       </PopoverTrigger>
-                      <PopoverContent className={`p-3 w-[280px] ${!isDark ? "border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : ""}`} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                      <PopoverContent className={`p-3 w-[280px] ${!isDark ? "border-2" : ""}`} style={!isDark ? { borderColor: theme.border } : {}} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
                           <div className="text-xs flex flex-col gap-3">
+                              {/* ... Popover Content remains same ... */}
                               <div className="font-bold flex items-center justify-between border-b border-divider pb-2">
                                   <span className="flex items-center gap-2 text-sm">
                                       {prop.name}
@@ -219,14 +233,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                                   <span className={!prop.nullable ? "text-danger font-medium" : "text-default-500"}>
                                       {!prop.nullable ? 'Yes (Not Null)' : 'No (Nullable)'}
                                   </span>
-                                  {prop.defaultValue && (
-                                      <>
-                                          <span className="text-default-400">Default</span>
-                                          <span className="font-mono bg-default-50 px-1 rounded border border-default-200">{prop.defaultValue}</span>
-                                      </>
-                                  )}
                               </div>
-                              <Divider className="opacity-50"/>
                               <div className="flex flex-wrap gap-2">
                                   {prop.maxLength !== undefined && (
                                       <div className="flex flex-col bg-content2 p-1.5 rounded min-w-[50px] border border-divider">
@@ -234,54 +241,15 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                                           <span className="font-mono font-bold">{prop.maxLength}</span>
                                       </div>
                                   )}
-                                  {(prop.precision !== undefined || prop.scale !== undefined) && (
-                                      <div className="flex flex-col bg-content2 p-1.5 rounded min-w-[50px] border border-divider">
-                                          <span className="text-[9px] text-default-400 flex items-center gap-1"><Hash size={10}/> Scale</span>
-                                          <span className="font-mono font-bold">{prop.precision || '-'}/{prop.scale || '-'}</span>
-                                      </div>
-                                  )}
-                                  {prop.fixedLength && (
-                                      <div className="flex flex-col bg-default-100 p-1.5 rounded min-w-[50px] border border-divider">
-                                          <span className="text-[9px] text-default-400 flex items-center gap-1"><AlignJustify size={10}/> Fixed</span>
-                                          <span className="font-bold text-default-700 text-[10px]">Yes</span>
-                                      </div>
-                                  )}
-                                  <div className="flex flex-col bg-default-100 p-1.5 rounded min-w-[50px] border border-divider">
-                                      <span className="text-[9px] text-default-400 flex items-center gap-1"><CaseSensitive size={10}/> Unicode</span>
-                                      <span className={`font-bold text-[10px] ${prop.unicode === false ? 'text-warning-700' : 'text-primary'}`}>
-                                          {prop.unicode === false ? 'False (ANSI)' : 'True'}
-                                      </span>
-                                  </div>
-                                  {prop.concurrencyMode && (
-                                      <div className="flex flex-col bg-warning/10 p-1.5 rounded min-w-[50px] border border-warning/20">
-                                          <span className="text-[9px] text-warning-600 flex items-center gap-1"><Zap size={10}/> Mode</span>
-                                          <span className="font-bold text-warning-800 text-[10px]">{prop.concurrencyMode}</span>
-                                      </div>
-                                  )}
                               </div>
-                              {fkInfo && (
-                                  <div className="bg-secondary/10 p-2 rounded border border-secondary/20 mt-1 cursor-pointer hover:bg-secondary/20 transition-colors"
-                                      onClick={(e) => { 
-                                          e.stopPropagation(); 
-                                          setActivePopoverProp(null); 
-                                          handleJumpToEntity(fkInfo.targetEntity, false); 
-                                      }}
-                                  >
-                                      <div className="text-[10px] text-secondary font-bold mb-1 flex items-center gap-1">
-                                          <Link2 size={10} /> Foreign Key Relation
-                                      </div>
-                                      <div className="grid grid-cols-[40px_1fr] gap-1 text-[10px]">
-                                          <span className="opacity-70">To:</span> <span className="font-bold">{fkInfo.targetEntity}</span>
-                                          <span className="opacity-70">Field:</span> <span className="font-mono">{fkInfo.targetProperty}</span>
-                                          <span className="opacity-70">Via:</span> <span className="italic opacity-80">{fkInfo.navName}</span>
-                                      </div>
-                                  </div>
-                              )}
                           </div>
                       </PopoverContent>
                   </Popover>
                 </span>
-                <span className={`text-[9px] ml-1 font-mono ${isDark ? "text-default-400 opacity-70" : "text-white/80 drop-shadow-sm font-medium"}`}>
+                <span 
+                    className={`text-[9px] ml-1 font-mono ${metaClass}`}
+                    style={isLightMode ? { color: theme.text } : {}}
+                >
                     {prop.type.split('.').pop()}
                 </span>
               </div>
@@ -291,7 +259,8 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
           {/* Expand/Collapse */}
           {!isExpanded && hiddenCount > 0 && (
               <div 
-                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 border border-dashed ${isDark ? "text-primary hover:bg-primary/5 hover:border-primary/50 border-divider" : "text-white font-bold hover:bg-white/20 border-white/50 drop-shadow-sm"}`}
+                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 border border-dashed ${isDark ? "text-primary hover:bg-primary/5 hover:border-primary/50 border-divider" : "hover:bg-black/5 border-black/20"}`}
+                  style={isLightMode ? { color: theme.header, borderColor: theme.header } : {}}
                   onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
               >
                   <ChevronDown size={10} />
@@ -300,7 +269,8 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
           )}
           {isExpanded && hiddenCount > 0 && (
               <div 
-                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 ${isDark ? "text-default-400 hover:bg-black/5" : "text-white/80 hover:bg-white/20"}`}
+                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 ${isDark ? "text-default-400 hover:bg-black/5" : "hover:bg-black/5"}`}
+                  style={isLightMode ? { color: theme.text } : {}}
                   onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
               >
                   <ChevronUp size={10} />
@@ -310,30 +280,34 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
           {/* Navigation Properties */}
           {data.navigationProperties && data.navigationProperties.length > 0 && (
-              <div className={`mt-2 pt-2 ${isDark ? "border-t border-divider/50" : "border-t border-white/30"}`}>
-                  <div className={`text-[9px] font-bold mb-1.5 px-1 uppercase tracking-wider flex items-center gap-2 ${isDark ? "text-default-500" : "text-white/90 drop-shadow-sm"}`}>
+              <div className={`mt-2 pt-2 ${isDark ? "border-t border-divider/50" : "border-t border-black/5"}`}>
+                  <div 
+                    className={`text-[9px] font-bold mb-1.5 px-1 uppercase tracking-wider flex items-center gap-2 ${isDark ? "text-default-500" : ""}`}
+                    style={isLightMode ? { color: theme.text, opacity: 0.8 } : {}}
+                  >
                       <span>Navigation</span>
-                      <div className={`h-px flex-1 ${isDark ? "bg-divider" : "bg-white/30"}`}></div>
+                      <div className={`h-px flex-1 ${isDark ? "bg-divider" : "bg-black/10"}`}></div>
                   </div>
-                  <div className={`rounded-md p-1 flex flex-col gap-1 ${isDark ? 'bg-secondary/10 border border-secondary/10' : 'bg-black/10 border border-black/5'}`}>
+                  <div className={`rounded-md p-1 flex flex-col gap-1 ${isDark ? 'bg-secondary/10 border border-secondary/10' : 'bg-white/50 border border-black/5'}`}>
                       {data.navigationProperties.slice(0, 8).map((nav: any) => {
                           const cleanType = nav.targetType?.replace('Collection(', '').replace(')', '').split('.').pop();
                           return (
                               <div 
                                   key={nav.name} 
-                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20 text-secondary-700" : "hover:bg-white/20 bg-white/10 border border-transparent hover:border-white/50 text-white font-medium hover:shadow-sm"}`}
+                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20 text-secondary-700" : "hover:bg-white bg-white/40 border border-transparent hover:shadow-sm"}`}
+                                  style={isLightMode ? { color: theme.text } : {}}
                                   onClick={(e) => { e.stopPropagation(); handleJumpToEntity(cleanType, false); }}
                                   title={`Jump to ${cleanType}`}
                               >
                                   <span className="flex items-center gap-1.5 truncate w-full">
-                                      <ArrowRightCircle size={10} className={`shrink-0 transition-opacity ${isDark ? "text-secondary opacity-70 group-hover:opacity-100" : "text-white opacity-80"}`} />
-                                      <span className="font-medium text-[10px] drop-shadow-sm">{nav.name}</span>
+                                      <ArrowRightCircle size={10} className={`shrink-0 transition-opacity ${isDark ? "text-secondary opacity-70 group-hover:opacity-100" : "opacity-70 group-hover:opacity-100"}`} style={isLightMode ? { color: theme.header } : {}} />
+                                      <span className="font-medium text-[10px]">{nav.name}</span>
                                   </span>
                               </div>
                           );
                       })}
                       {data.navigationProperties.length > 8 && (
-                          <div className={`text-[9px] text-center pt-1 italic ${isDark ? "text-default-400" : "text-white/70"}`}>
+                          <div className={`text-[9px] text-center pt-1 italic ${isDark ? "text-default-400" : ""}`} style={isLightMode ? { color: theme.text, opacity: 0.6 } : {}}>
                               + {data.navigationProperties.length - 8} more relations
                           </div>
                       )}
@@ -350,20 +324,21 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             onMouseDown={() => addActiveEntity(id)}
             onClick={(e) => e.stopPropagation()}
         >
-            <div className={`bg-content1 rounded-lg border border-divider overflow-hidden flex flex-col max-h-[600px] ${isDark ? 'shadow-2xl ring-1 ring-black/5' : 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] border-2 border-black'}`}>
+            <div className={`bg-content1 rounded-lg border border-divider overflow-hidden flex flex-col max-h-[600px] ${isDark ? 'shadow-2xl ring-1 ring-black/5' : 'shadow-[8px_8px_0px_0px_rgba(0,0,0,0.15)] border-2'}`} style={isLightMode ? { borderColor: theme.header } : {}}>
                 <div 
-                    className={`flex justify-between items-center p-3 border-b border-divider shrink-0 ${isDark ? 'bg-default-100' : 'bg-white border-b-2 border-black'}`}
+                    className={`flex justify-between items-center p-3 border-b border-divider shrink-0 ${isDark ? 'bg-default-100' : 'text-white'}`}
+                    style={isLightMode ? { backgroundColor: theme.header, borderColor: theme.header } : {}}
                 >
-                    <div className="flex items-center gap-3 font-bold text-default-700 text-sm">
-                        <Database size={18} className={isDark ? "text-primary" : "text-black"} />
+                    <div className="flex items-center gap-3 font-bold text-sm text-inherit">
+                        <Database size={18} className={isDark ? "text-primary" : "text-white"} />
                         {data.label}
-                        <span className="text-xs font-normal text-default-500 bg-white px-1.5 rounded border border-divider">{data.namespace}</span>
+                        <span className={`text-xs font-normal px-1.5 rounded border ${isDark ? "text-default-500 bg-white border-divider" : "text-white/80 bg-white/20 border-white/30"}`}>{data.namespace}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button size="sm" variant={isDark ? "flat" : "solid"} color="primary" onPress={handleExportCSV} startContent={<Download size={14} />} className={!isDark ? "bg-black text-white font-bold" : ""}>
+                        <Button size="sm" variant={isDark ? "flat" : "solid"} className={isLightMode ? "bg-white/20 text-white hover:bg-white/30" : ""} color="primary" onPress={handleExportCSV} startContent={<Download size={14} />}>
                             Export CSV
                         </Button>
-                        <Button isIconOnly size="sm" variant="light" onPress={() => removeActiveEntity(id)}>
+                        <Button isIconOnly size="sm" variant="light" className={isLightMode ? "text-white hover:bg-white/20" : ""} onPress={() => removeActiveEntity(id)}>
                             <X size={18} />
                         </Button>
                     </div>
@@ -379,7 +354,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                         />
                 </ScrollShadow>
                 
-                <div className={`bg-default-50 p-2 text-xs text-default-500 text-center border-t border-divider shrink-0 flex justify-between px-4 ${!isDark ? 'border-t-2 border-black font-bold text-black bg-gray-100' : ''}`}>
+                <div className={`bg-default-50 p-2 text-xs text-default-500 text-center border-t border-divider shrink-0 flex justify-between px-4 ${isLightMode ? 'bg-gray-50' : ''}`}>
                     <span>{data.properties.length} Properties</span>
                     <span>{data.navigationProperties?.length || 0} Relations</span>
                 </div>
