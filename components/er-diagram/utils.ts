@@ -14,24 +14,24 @@ const PALETTE = [
   '#06B6D4', '#F97316', '#EC4899', '#8B5CF6', '#10B981'
 ];
 
-// 新增：暖色、鲜艳、奔放的色板 (用于亮色模式)
-// 侧重于 Red, Orange, Amber, Pink, Purple 等暖色调
-const WARM_PALETTE = [
-  '#ff5722', // Deep Orange
-  '#f44336', // Red
-  '#e91e63', // Pink
-  '#ff9800', // Orange
-  '#9c27b0', // Purple
-  '#ffc107', // Amber (Darker)
-  '#f50057', // Pink Accent
-  '#d500f9', // Purple Accent
-  '#ff1744', // Red Accent
-  '#ff6d00', // Orange Accent
+// 新增：高饱和度、鲜艳、奔放的色板 (用于亮色模式)
+// 包含：Cyan, Hot Pink, Lime, Bright Orange, Electric Purple, Yellow, etc.
+const BOLD_PALETTE = [
+  '#06b6d4', // Cyan
+  '#f43f5e', // Rose
+  '#84cc16', // Lime
+  '#f97316', // Orange
+  '#d946ef', // Fuchsia
+  '#8b5cf6', // Violet
+  '#eab308', // Yellow
+  '#14b8a6', // Teal
+  '#3b82f6', // Blue
+  '#f59e0b', // Amber
 ];
 
 export const getColor = (index: number, isBoldMode: boolean = false) => {
     if (isBoldMode) {
-        return WARM_PALETTE[index % WARM_PALETTE.length];
+        return BOLD_PALETTE[index % BOLD_PALETTE.length];
     }
     return PALETTE[index % PALETTE.length];
 };

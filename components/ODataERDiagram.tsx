@@ -129,6 +129,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           // 亮色模式下：线条更粗，颜色更深一点（或保持原色），不透明
           const strokeWidth = isDark ? 2 : 3;
           const opacity = isDark ? 0.8 : 1;
+          // 亮色模式下，如果需要更强烈的对比，可以使用纯黑或保持原色但加粗
+          // 这里保持原色但加粗，配合节点的硬边框
           
           return {
               ...edge,
@@ -226,7 +228,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                     // 亮色模式使用 Bold Palette
                     const colorIndex = Math.abs(generateHashCode(pairKey));
                     // 初始生成使用通用逻辑，颜色会在 Node 组件内部根据 isDark 二次处理
-                    // 但 Edge 颜色需要在这里定。
+                    // 但 Edge 颜色需要在这里定。为了简单，Edge 使用 Bold Palette，因为在暗色模式下也好看。
+                    // 或者我们这里始终使用 BOLD 颜色给 Edge，暗色模式下会自动降低不透明度
                     const edgeColor = getColor(colorIndex, true); 
                     
                     if (nav.constraints && nav.constraints.length > 0) {
@@ -463,8 +466,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   };
 
   return (
-    // 背景控制：暗色使用默认，亮色使用柔和的米黄色/蛋壳色 (Soft Warm)
-    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#FFF8F0]'}`}>
+    // 背景控制：暗色使用默认，亮色使用更加中性的背景让方块跳出来
+    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#fafafa]'}`}>
       {(isLoading || isProcessingLayout) && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm gap-4">
           <Spinner size="lg" color="primary" />
@@ -561,7 +564,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                     gap={20} 
                     size={isDark ? 1 : 2} 
                     variant={isDark ? undefined : BackgroundVariant.Dots}
-                    style={isDark ? {} : { backgroundColor: '#FFF8F0' }} // Keep aligned with container bg
+                    style={isDark ? {} : { backgroundColor: '#f4f4f5' }}
                 />
             </ReactFlow>
         </DiagramContext.Provider>
