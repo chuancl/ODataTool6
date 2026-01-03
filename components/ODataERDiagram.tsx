@@ -485,24 +485,44 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
       {/* Controls Overlay (Top Right) */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
-        <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border border-divider shadow-sm ${isDark ? "bg-content1/90 backdrop-blur-md" : "bg-content1"}`}>
-            <span className="text-xs font-medium text-default-500 flex items-center gap-1">
-                {showXml ? <Network size={14} className="text-primary"/> : <FileCode size={14} className="text-default-400" />}
+        {/* Toggle View Box: Blue Background, Purple Switch */}
+        <div className="flex items-center gap-2 p-1.5 px-3 rounded-lg border border-transparent shadow-sm bg-primary text-white">
+            <span className="text-xs font-medium flex items-center gap-1">
+                {showXml ? <Network size={14} className="text-white"/> : <FileCode size={14} className="text-white/80" />}
                 {showXml ? "显示ER图" : "显示原始文件"}
             </span>
-            <Switch size="sm" isSelected={showXml} onValueChange={setShowXml} aria-label="Toggle View" />
+            <Switch 
+                size="sm" 
+                color="secondary" // Purple switch on blue
+                isSelected={showXml} 
+                onValueChange={setShowXml} 
+                aria-label="Toggle View"
+                classNames={{
+                    wrapper: "bg-default/40 group-data-[selected=true]:bg-secondary" 
+                }}
+            />
         </div>
 
         {!showXml && (
             <>
-                <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border border-divider shadow-sm ${isDark ? "bg-content1/90 backdrop-blur-md" : "bg-content1"}`}>
-                    <span className="text-xs font-medium text-default-500 flex items-center gap-1">
-                        <Zap size={14} className={isPerformanceMode ? "text-warning" : "text-default-400"} fill={isPerformanceMode ? "currentColor" : "none"} />
+                {/* Performance Mode Box: Blue Background, Warning/Orange Switch */}
+                <div className="flex items-center gap-2 p-1.5 px-3 rounded-lg border border-transparent shadow-sm bg-primary text-white">
+                    <span className="text-xs font-medium flex items-center gap-1">
+                        <Zap size={14} className={isPerformanceMode ? "text-yellow-300" : "text-white/70"} fill={isPerformanceMode ? "currentColor" : "none"} />
                         性能模式
                     </span>
-                    <Switch size="sm" isSelected={isPerformanceMode} onValueChange={setIsPerformanceMode} aria-label="性能模式" />
+                    <Switch 
+                        size="sm" 
+                        color="warning" // Orange switch on blue
+                        isSelected={isPerformanceMode} 
+                        onValueChange={setIsPerformanceMode} 
+                        aria-label="性能模式"
+                        classNames={{
+                            wrapper: "bg-default/40 group-data-[selected=true]:bg-warning"
+                        }}
+                    />
                 </div>
-                {/* Reset View Button - Solid Style */}
+                {/* Reset View Button - Solid Style (Blue) */}
                 <Button 
                     size="sm" 
                     color="primary" 
