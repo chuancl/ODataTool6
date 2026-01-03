@@ -466,8 +466,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   };
 
   return (
-    // 修改处：亮色模式下使用 #E0F2FE (Sky 100) 背景，这是一种非常明亮、鲜艳的蓝色
-    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#E0F2FE]'}`}>
+    // 修改处：亮色模式下使用 #C7EDCC (Mint Green) 背景
+    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#C7EDCC]'}`}>
       {(isLoading || isProcessingLayout) && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm gap-4">
           <Spinner size="lg" color="primary" />
@@ -560,13 +560,13 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             >
                 <Controls className="bg-content1 border border-divider shadow-sm" />
                 <Background 
-                    // 修改处：亮色模式下使用 #0EA5E9 (Sky 500) 网点，匹配高饱和度蓝色背景
-                    color={isDark ? "#888" : "#0EA5E9"} 
+                    // 修改处：亮色模式下使用 #047857 (Emerald 700) 网点，与薄荷绿背景形成对比
+                    color={isDark ? "#888" : "#047857"} 
                     gap={20} 
                     size={isDark ? 1 : 2} 
                     variant={isDark ? undefined : BackgroundVariant.Dots}
-                    // 修改处：亮色模式下使用 #E0F2FE (Sky 100) 背景
-                    style={isDark ? {} : { backgroundColor: '#E0F2FE' }}
+                    // 修改处：亮色模式下使用 #C7EDCC (Mint Green) 背景
+                    style={isDark ? {} : { backgroundColor: '#C7EDCC' }}
                 />
             </ReactFlow>
         </DiagramContext.Provider>
