@@ -168,14 +168,17 @@ export const EntityDetailsTable = ({
             <table className="w-full text-left border-collapse table-fixed">
                 <thead 
                     className={`sticky top-0 z-20 backdrop-blur-md shadow-sm border-b border-divider ${themeBody ? '' : 'bg-default-50/90'}`}
-                    style={themeBody ? { backgroundColor: themeBody } : {}}
+                    style={themeBody ? { 
+                        backgroundColor: themeBody,
+                        backgroundImage: 'linear-gradient(rgba(0,0,0,0.05), rgba(0,0,0,0.05))' // Slight dark tint
+                    } : {}}
                 >
                     {table.getHeaderGroups().map(headerGroup => (
                         <tr key={headerGroup.id}>
                             {headerGroup.headers.map(header => (
                                 <th 
                                     key={header.id} 
-                                    className="relative p-2 py-3 text-xs font-bold text-default-600 uppercase tracking-wider select-none group border-r border-divider/10 hover:bg-default-100 transition-colors"
+                                    className={`relative p-2 py-3 text-xs font-bold text-default-600 uppercase tracking-wider select-none group border-r border-divider/10 transition-colors ${themeBody ? 'hover:bg-black/5' : 'hover:bg-default-100'}`}
                                     style={{ width: header.getSize() }}
                                     draggable={!header.isPlaceholder}
                                     onDragStart={(e) => {
