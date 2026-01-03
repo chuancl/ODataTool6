@@ -10,14 +10,16 @@ export const EntityDetailsTable = ({
     getFkInfo,
     onJumpToEntity,
     onFocus,
-    themeBody
+    themeBody,
+    themeNav
 }: { 
     properties: EntityProperty[], 
     keys: string[], 
     getFkInfo: (name: string) => any,
     onJumpToEntity: (name: string) => void,
     onFocus?: () => void,
-    themeBody?: string
+    themeBody?: string,
+    themeNav?: string
 }) => {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(['name', 'type', 'size', 'attributes', 'defaultValue', 'relation']);
@@ -168,10 +170,10 @@ export const EntityDetailsTable = ({
             <table className="w-full text-left border-collapse table-fixed">
                 <thead 
                     className={`sticky top-0 z-20 backdrop-blur-md shadow-sm border-b border-divider ${themeBody ? '' : 'bg-default-50/90'}`}
-                    style={themeBody ? { 
+                    style={themeNav ? { backgroundColor: themeNav } : (themeBody ? { 
                         backgroundColor: themeBody,
-                        backgroundImage: 'linear-gradient(rgba(0,0,0,0.05), rgba(0,0,0,0.05))' // Slight dark tint
-                    } : {}}
+                        backgroundImage: 'linear-gradient(rgba(0,0,0,0.05), rgba(0,0,0,0.05))' // Slight dark tint fallback
+                    } : {})}
                 >
                     {table.getHeaderGroups().map(headerGroup => (
                         <tr key={headerGroup.id}>

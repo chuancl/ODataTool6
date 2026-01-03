@@ -360,10 +360,14 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                             onJumpToEntity={(name) => handleJumpToEntity(name, true)}
                             onFocus={() => addActiveEntity(id)} 
                             themeBody={isLightMode ? theme.body : undefined}
+                            themeNav={isLightMode ? theme.nav : undefined}
                         />
                 </ScrollShadow>
                 
-                <div className={`bg-default-50 p-2 text-xs text-default-500 text-center border-t border-divider shrink-0 flex justify-between px-4 ${isLightMode ? 'bg-gray-50' : ''}`}>
+                <div 
+                    className={`bg-default-50 p-2 text-xs text-default-500 text-center border-t border-divider shrink-0 flex justify-between px-4 ${isLightMode ? '' : ''}`}
+                    style={isLightMode ? { backgroundColor: theme.nav, color: theme.text, borderColor: theme.border } : {}}
+                >
                     <span>{data.properties.length} Properties</span>
                     <span>{data.navigationProperties?.length || 0} Relations</span>
                 </div>
