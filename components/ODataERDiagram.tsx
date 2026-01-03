@@ -567,8 +567,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                     gap={20} 
                     size={isDark ? 1 : 2} 
                     variant={isDark ? undefined : BackgroundVariant.Dots}
-                    // 修改处：亮色模式下使用 #F0F9FF 背景
-                    style={isDark ? {} : { backgroundColor: '#F0F9FF' }}
+                    // 修改处：亮色模式下使用 #C7EDCC 背景
+                    style={isDark ? {} : { backgroundColor: '#C7EDCC' }}
                 />
             </ReactFlow>
         </DiagramContext.Provider>
