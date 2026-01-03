@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import ReactFlow, { 
   Controls, 
@@ -8,7 +9,8 @@ import ReactFlow, {
   Edge,
   Node,
   ReactFlowProvider,
-  useReactFlow // Added useReactFlow for viewport control
+  useReactFlow, // Added useReactFlow for viewport control
+  BackgroundVariant // Added for type safety
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ELK from 'elkjs/lib/elk.bundled.js';
@@ -112,6 +114,48 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
   useEffect(() => { edgesRef.current = edges; }, [edges]);
 
+  // Sync isDark prop to nodes data to trigger re-render of Node components
+  useEffect(() => {
+      setNodes((nds) => nds.map(node => ({
+          ...node,
+          data: { ...node.data, isDark }
+      })));
+  }, [isDark, setNodes]);
+
+  // Sync Edge Styles based on Theme
+  useEffect(() => {
+      setEdges((eds) => eds.map(edge => {
+          const originalColor = edge.data?.originalColor;
+          // 亮色模式下：线条更粗，颜色更深一点（或保持原色），不透明
+          const strokeWidth = isDark ? 2 : 3;
+          const opacity = isDark ? 0.8 : 1;
+          // 亮色模式下，如果需要更强烈的对比，可以使用纯黑或保持原色但加粗
+          // 这里保持原色但加粗，配合节点的硬边框
+          
+          return {
+              ...edge,
+              style: { 
+                  ...edge.style, 
+                  stroke: originalColor, 
+                  strokeWidth: strokeWidth, 
+                  opacity: opacity 
+              },
+              labelStyle: {
+                  ...edge.labelStyle,
+                  fontWeight: isDark ? 400 : 700, // 亮色模式加粗文字
+                  fill: originalColor
+              },
+              labelBgStyle: {
+                  ...edge.labelBgStyle,
+                  fill: isDark ? '#18181b' : '#ffffff', // 标签背景适配
+                  stroke: isDark ? 'transparent' : originalColor,
+                  strokeWidth: isDark ? 0 : 1
+              }
+          };
+      }));
+  }, [isDark, setEdges]);
+
+
   // 提取布局更新逻辑
   const performLayoutUpdate = useCallback((draggedNodes: Node[] = []) => {
       const currentNodes = nodesRef.current;
@@ -181,8 +225,12 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
                 if (targetName && entities.find(n => n.name === targetName)) {
                     const pairKey = [entity.name, targetName].sort().join('::');
+                    // 亮色模式使用 Bold Palette
                     const colorIndex = Math.abs(generateHashCode(pairKey));
-                    const edgeColor = getColor(colorIndex);
+                    // 初始生成使用通用逻辑，颜色会在 Node 组件内部根据 isDark 二次处理
+                    // 但 Edge 颜色需要在这里定。为了简单，Edge 使用 Bold Palette，因为在暗色模式下也好看。
+                    // 或者我们这里始终使用 BOLD 颜色给 Edge，暗色模式下会自动降低不透明度
+                    const edgeColor = getColor(colorIndex, true); 
                     
                     if (nav.constraints && nav.constraints.length > 0) {
                         nav.constraints.forEach((c: any) => {
@@ -221,7 +269,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             keys: e.keys, 
             navigationProperties: e.navigationProperties,
             fieldColors: fieldColorMap[e.name] || {},
-            dynamicHandles: [] 
+            dynamicHandles: [],
+            isDark: isDark // Inject Theme
           },
           position: { x: 0, y: 0 }
         }));
@@ -240,8 +289,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           layoutOptions: {
             'elk.algorithm': 'layered',
             'elk.direction': 'RIGHT',
-            'elk.spacing.nodeNode': '200',  // Increased spacing
-            'elk.layered.spacing.nodeNodeBetweenLayers': '400', // Increased spacing
+            'elk.spacing.nodeNode': '200',
+            'elk.layered.spacing.nodeNodeBetweenLayers': '400',
             'elk.edgeRouting': 'SPLINES', 
             'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
           },
@@ -275,11 +324,11 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             markerStart: { type: MarkerType.ArrowClosed, color: e.color },
             markerEnd: { type: MarkerType.ArrowClosed, color: e.color },
             animated: false,
-            // Increase strokeWidth to 6
-            style: { stroke: e.color, strokeWidth: 6, opacity: 0.8 },
+            // 初始样式，会被 useEffect 覆盖
+            style: { stroke: e.color, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 },
             label: e.label,
-            labelStyle: { fill: e.color, fontWeight: 700, fontSize: 10 },
-            labelBgStyle: { fill: '#ffffff', fillOpacity: 0.7, rx: 4, ry: 4 },
+            labelStyle: { fill: e.color, fontWeight: isDark ? 400 : 700, fontSize: 10 },
+            labelBgStyle: { fill: isDark ? '#ffffff' : '#f4f4f5', fillOpacity: 0.8, rx: 4, ry: 4 },
             data: { originalColor: e.color }
         }));
 
@@ -292,7 +341,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
     } finally {
         setIsProcessingLayout(false);
     }
-  }, [schema, setNodes, setEdges]);
+  }, [schema, setNodes, setEdges]); // Removed isDark dependency to prevent re-layout
 
   // Initial load
   useEffect(() => {
@@ -334,8 +383,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           setEdges((eds) => eds.map(e => ({
               ...e, 
               animated: false, 
-              // Reset strokeWidth to 6
-              style: { stroke: e.data?.originalColor, strokeWidth: 6, opacity: 0.8 }, 
+              style: { stroke: e.data?.originalColor, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 }, 
               markerStart: { type: MarkerType.ArrowClosed, color: e.data?.originalColor },
               markerEnd: { type: MarkerType.ArrowClosed, color: e.data?.originalColor },
               labelStyle: { ...e.labelStyle, fill: e.data?.originalColor, opacity: 1 },
@@ -368,7 +416,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               style: { 
                   ...e.style, 
                   stroke: color,
-                  // Highlighting width: increased to 8 for visibility
                   strokeWidth: isVisible ? 8 : 1,
                   opacity: isVisible ? 1 : 0.05, 
                   zIndex: isVisible ? 10 : 0
@@ -379,7 +426,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               labelBgStyle: { ...e.labelBgStyle, fillOpacity: isVisible ? 0.9 : 0 }
           };
       }));
-  }, [highlightedIds, setNodes, setEdges]);
+  }, [highlightedIds, setNodes, setEdges, isDark]);
 
   useEffect(() => {
     setNodes((nds) => nds.map(n => {
@@ -395,12 +442,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   const resetView = useCallback(async () => {
      setHighlightedIds(new Set());
      setActiveEntityIds([]); 
-     
-     // Recalculate layout from scratch
      await generateDiagram();
-     
-     // Reset Viewport (Zoom/Pan)
-     // Add a small delay to ensure nodes are rendered in their new positions before fitting
      setTimeout(() => {
          fitView({ duration: 800, padding: 0.1 });
      }, 100);
@@ -424,10 +466,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   };
 
   return (
-    // 修改处：根据 isDark 动态切换背景颜色
-    // 暗色模式：bg-content2/30 (保持原样)
-    // 亮色模式：bg-[#E3F2FD] (浅蓝色/淡天蓝，更鲜艳，避免灰色)
-    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#E3F2FD]'}`}>
+    // 背景控制：暗色使用默认，亮色使用更加中性的背景让方块跳出来
+    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#fafafa]'}`}>
       {(isLoading || isProcessingLayout) && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm gap-4">
           <Spinner size="lg" color="primary" />
@@ -445,7 +485,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
       {/* Controls Overlay (Top Right) */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
-        {/* Switch for Diagram / XML View */}
         <div className="flex items-center gap-2 bg-content1/90 backdrop-blur-md p-1.5 px-3 rounded-lg border border-divider shadow-sm">
             <span className="text-xs font-medium text-default-500 flex items-center gap-1">
                 {showXml ? <Network size={14} className="text-primary"/> : <FileCode size={14} className="text-default-400" />}
@@ -454,7 +493,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             <Switch size="sm" isSelected={showXml} onValueChange={setShowXml} aria-label="Toggle View" />
         </div>
 
-        {/* Other controls hidden when showing XML to avoid clutter */}
         {!showXml && (
             <>
                 <div className="flex items-center gap-2 bg-content1/90 backdrop-blur-md p-1.5 px-3 rounded-lg border border-divider shadow-sm">
@@ -474,7 +512,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
         className="w-full h-full absolute inset-0 bg-content1 z-0 flex flex-col"
         style={{ display: showXml ? 'flex' : 'none' }}
       >
-          {/* XML Toolbar - Moved actions to LEFT to prevent overlap with top-right switch */}
           <div className="p-2 border-b border-divider flex items-center gap-4 bg-content2/50 backdrop-blur-md shrink-0">
              <span className="text-xs font-bold text-default-500 px-2 flex items-center gap-2">
                  <FileCode size={14}/> Metadata.xml
@@ -485,7 +522,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
              </div>
           </div>
           
-          {/* CodeMirror Editor */}
           <div className="flex-1 overflow-hidden relative text-sm">
              <CodeMirror
                 value={formattedXml || '<!-- No XML Content Available -->'}
@@ -523,7 +559,13 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                 maxZoom={1.5}
             >
                 <Controls className="bg-content1 border border-divider shadow-sm" />
-                <Background color="#888" gap={24} size={1} />
+                <Background 
+                    color={isDark ? "#888" : "#000"} 
+                    gap={20} 
+                    size={isDark ? 1 : 2} 
+                    variant={isDark ? undefined : BackgroundVariant.Dots}
+                    style={isDark ? {} : { backgroundColor: '#f4f4f5' }}
+                />
             </ReactFlow>
         </DiagramContext.Provider>
       </div>
