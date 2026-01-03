@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import ReactFlow, { 
   Controls, 
@@ -465,10 +466,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   };
 
   return (
-    // 修改处：根据 isDark 动态切换背景颜色
-    // 暗色模式：bg-content2/30 (保持原样)
-    // 亮色模式：bg-[#E3F2FD] (浅蓝色/淡天蓝，更鲜艳，避免灰色)
-    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#E3F2FD]'}`}>
+    // 修改处：亮色模式下使用 #E0F7FA (Cyan 50) 背景，避免灰暗
+    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#E0F7FA]'}`}>
       {(isLoading || isProcessingLayout) && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm gap-4">
           <Spinner size="lg" color="primary" />
@@ -486,7 +485,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
       {/* Controls Overlay (Top Right) */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
-        {/* Switch for Diagram / XML View */}
         <div className="flex items-center gap-2 bg-content1/90 backdrop-blur-md p-1.5 px-3 rounded-lg border border-divider shadow-sm">
             <span className="text-xs font-medium text-default-500 flex items-center gap-1">
                 {showXml ? <Network size={14} className="text-primary"/> : <FileCode size={14} className="text-default-400" />}
@@ -495,7 +493,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             <Switch size="sm" isSelected={showXml} onValueChange={setShowXml} aria-label="Toggle View" />
         </div>
 
-        {/* Other controls hidden when showing XML to avoid clutter */}
         {!showXml && (
             <>
                 <div className="flex items-center gap-2 bg-content1/90 backdrop-blur-md p-1.5 px-3 rounded-lg border border-divider shadow-sm">
@@ -515,7 +512,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
         className="w-full h-full absolute inset-0 bg-content1 z-0 flex flex-col"
         style={{ display: showXml ? 'flex' : 'none' }}
       >
-          {/* XML Toolbar - Moved actions to LEFT to prevent overlap with top-right switch */}
           <div className="p-2 border-b border-divider flex items-center gap-4 bg-content2/50 backdrop-blur-md shrink-0">
              <span className="text-xs font-bold text-default-500 px-2 flex items-center gap-2">
                  <FileCode size={14}/> Metadata.xml
@@ -526,7 +522,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
              </div>
           </div>
           
-          {/* CodeMirror Editor */}
           <div className="flex-1 overflow-hidden relative text-sm">
              <CodeMirror
                 value={formattedXml || '<!-- No XML Content Available -->'}
@@ -565,11 +560,13 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             >
                 <Controls className="bg-content1 border border-divider shadow-sm" />
                 <Background 
-                    color={isDark ? "#888" : "#000"} 
+                    // 修改处：亮色模式下使用深青色 (#00838F) 的网点，避免使用黑色导致"灰蒙蒙"
+                    color={isDark ? "#888" : "#00838F"} 
                     gap={20} 
                     size={isDark ? 1 : 2} 
                     variant={isDark ? undefined : BackgroundVariant.Dots}
-                    style={isDark ? {} : { backgroundColor: '#E3F2FD' }}
+                    // 修改处：亮色模式下使用 #E0F7FA 背景
+                    style={isDark ? {} : { backgroundColor: '#E0F7FA' }}
                 />
             </ReactFlow>
         </DiagramContext.Provider>
