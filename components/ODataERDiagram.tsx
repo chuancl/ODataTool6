@@ -22,7 +22,7 @@ import { Zap, FileCode, Download, Copy, Network } from 'lucide-react';
 import { calculateDynamicLayout } from './er-diagram/layout';
 import { EntityNode } from './er-diagram/EntityNode';
 import { DiagramContext } from './er-diagram/DiagramContext';
-import { generateHashCode, getColor } from './er-diagram/utils';
+import { generateHashCode, getEntityTheme } from './er-diagram/utils';
 import xmlFormat from 'xml-formatter';
 
 // CodeMirror imports for XML view
@@ -54,6 +54,31 @@ const ODataERDiagram: React.FC<Props> = (props) => {
     );
 };
 
+// --------------------------------------------------------
+// Helper Component: Edge Gradients Definition
+// --------------------------------------------------------
+const EdgeGradients = React.memo(({ edges }: { edges: Edge[] }) => {
+    return (
+        <svg style={{ position: 'absolute', top: 0, left: 0, height: 0, width: 0, pointerEvents: 'none' }}>
+            <defs>
+                {edges.map((e) => {
+                    if (!e.data?.gradientId || !e.data?.sourceColor || !e.data?.targetColor) return null;
+                    return (
+                        <linearGradient 
+                            key={e.id} 
+                            id={e.data.gradientId} 
+                            gradientUnits="objectBoundingBox" 
+                            x1="0%" y1="0%" x2="100%" y2="0%"
+                        >
+                            <stop offset="0%" stopColor={e.data.sourceColor} />
+                            <stop offset="100%" stopColor={e.data.targetColor} />
+                        </linearGradient>
+                    );
+                })}
+            </defs>
+        </svg>
+    );
+});
 
 const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlContent, isDark = true }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -125,11 +150,22 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   // Sync Edge Styles based on Theme
   useEffect(() => {
       setEdges((eds) => eds.map(edge => {
-          // Dynamic calculation based on stored color index to support Dark Mode palette
-          const colorIndex = edge.data?.colorIndex;
-          const themeColor = (colorIndex !== undefined) ? getColor(colorIndex, isDark) : (edge.data?.originalColor || '#999');
+          // Recalculate colors based on isDark
+          const sourceName = edge.source;
+          const targetName = edge.target;
           
-          // 亮色模式下：线条更粗，颜色更深一点（或保持原色），不透明
+          const sourceHashCode = Math.abs(generateHashCode(sourceName));
+          const targetHashCode = Math.abs(generateHashCode(targetName));
+          
+          const sourceTheme = getEntityTheme(sourceHashCode, isDark);
+          const targetTheme = getEntityTheme(targetHashCode, isDark);
+          
+          const sourceColor = sourceTheme.header;
+          const targetColor = targetTheme.header;
+          
+          // Generate deterministic safe ID for gradient
+          const gradientId = `grad_${sourceName.replace(/\W/g,'')}_${targetName.replace(/\W/g,'')}_${edge.id.replace(/\W/g,'')}`;
+
           const strokeWidth = isDark ? 2 : 3;
           const opacity = isDark ? 0.8 : 1;
           
@@ -137,28 +173,34 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               ...edge,
               style: { 
                   ...edge.style, 
-                  stroke: themeColor, 
+                  stroke: `url(#${gradientId})`, // Use Gradient
                   strokeWidth: strokeWidth, 
                   opacity: opacity 
               },
               markerStart: (typeof edge.markerStart === 'object' && edge.markerStart) ? { 
                   ...edge.markerStart, 
-                  color: themeColor 
+                  color: sourceColor // Optional: Source color for start marker
               } : edge.markerStart,
               markerEnd: (typeof edge.markerEnd === 'object' && edge.markerEnd) ? { 
                   ...edge.markerEnd, 
-                  color: themeColor 
+                  color: targetColor // Target color for arrow
               } : edge.markerEnd,
               labelStyle: {
                   ...edge.labelStyle,
-                  fontWeight: isDark ? 400 : 700, // 亮色模式加粗文字
-                  fill: themeColor
+                  fontWeight: isDark ? 400 : 700,
+                  fill: sourceColor // Label color matches source roughly
               },
               labelBgStyle: {
                   ...edge.labelBgStyle,
-                  fill: isDark ? '#18181b' : '#ffffff', // 标签背景适配
-                  stroke: isDark ? 'transparent' : themeColor,
+                  fill: isDark ? '#18181b' : '#ffffff',
+                  stroke: isDark ? 'transparent' : sourceColor,
                   strokeWidth: isDark ? 0 : 1
+              },
+              data: {
+                  ...edge.data,
+                  sourceColor,
+                  targetColor,
+                  gradientId
               }
           };
       }));
@@ -235,14 +277,24 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                 if (targetName && entities.find(n => n.name === targetName)) {
                     const pairKey = [entity.name, targetName].sort().join('::');
                     
-                    const colorIndex = Math.abs(generateHashCode(pairKey));
-                    // Initial calculation uses default palette (light mode default is fine here as it gets updated by useEffect)
-                    const edgeColor = getColor(colorIndex, false); 
+                    // --- Calculate Gradient Colors ---
+                    const sourceHashCode = Math.abs(generateHashCode(entity.name));
+                    const targetHashCode = Math.abs(generateHashCode(targetName));
+                    
+                    // Initial calculation uses default palette (updated by useEffect later)
+                    const sourceTheme = getEntityTheme(sourceHashCode, isDark);
+                    const targetTheme = getEntityTheme(targetHashCode, isDark);
+                    
+                    const sourceColor = sourceTheme.header;
+                    const targetColor = targetTheme.header;
+                    
+                    // We can use sourceColor for field highlighting as a default
+                    const edgeColor = sourceColor; 
                     
                     if (nav.constraints && nav.constraints.length > 0) {
                         nav.constraints.forEach((c: any) => {
-                            setFieldColor(entity.name, c.sourceProperty, edgeColor);
-                            setFieldColor(targetName, c.targetProperty, edgeColor);
+                            setFieldColor(entity.name, c.sourceProperty, sourceColor);
+                            setFieldColor(targetName, c.targetProperty, targetColor);
                         });
                     }
 
@@ -252,14 +304,20 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                     const sMult = nav.sourceMultiplicity || '?';
                     const tMult = nav.targetMultiplicity || '?';
                     const label = `${entity.name} (${sMult} - ${tMult}) ${targetName}`;
+                    const edgeId = `${entity.name}-${targetName}-${nav.name}`;
+                    // Safe ID for gradient
+                    const gradientId = `grad_${entity.name.replace(/\W/g,'')}_${targetName.replace(/\W/g,'')}_${edgeId.replace(/\W/g,'')}`;
 
                     rawEdges.push({
-                        id: `${entity.name}-${targetName}-${nav.name}`,
+                        id: edgeId,
                         source: entity.name,
                         target: targetName,
                         label: label,
-                        color: edgeColor,
-                        data: { colorIndex } // Store index for dynamic theming
+                        data: { 
+                            sourceColor,
+                            targetColor,
+                            gradientId
+                        }
                     });
                 }
             }
@@ -329,15 +387,15 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             targetHandle: undefined, 
             type: 'smoothstep', 
             pathOptions: { borderRadius: 20 },
-            markerStart: { type: MarkerType.ArrowClosed, color: e.color },
-            markerEnd: { type: MarkerType.ArrowClosed, color: e.color },
+            markerStart: { type: MarkerType.ArrowClosed, color: e.data.sourceColor },
+            markerEnd: { type: MarkerType.ArrowClosed, color: e.data.targetColor },
             animated: false,
             // 初始样式，会被 useEffect 覆盖
-            style: { stroke: e.color, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 },
+            style: { stroke: `url(#${e.data.gradientId})`, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 },
             label: e.label,
-            labelStyle: { fill: e.color, fontWeight: isDark ? 400 : 700, fontSize: 10 },
+            labelStyle: { fill: e.data.sourceColor, fontWeight: isDark ? 400 : 700, fontSize: 10 },
             labelBgStyle: { fill: isDark ? '#ffffff' : '#f4f4f5', fillOpacity: 0.8, rx: 4, ry: 4 },
-            data: { originalColor: e.color, colorIndex: e.data.colorIndex }
+            data: e.data
         }));
 
         const { nodes: finalNodes, edges: finalEdges } = calculateDynamicLayout(preCalcNodes, preCalcEdges);
@@ -389,17 +447,18 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               style: { ...n.style, opacity: 1, filter: 'none' }
           })));
           setEdges((eds) => eds.map(e => {
-            // Dynamic theme update for reset state
-            const colorIndex = e.data?.colorIndex;
-            const themeColor = (colorIndex !== undefined) ? getColor(colorIndex, isDark) : (e.data?.originalColor);
+            // Restore gradient style
+            const gradientStroke = `url(#${e.data?.gradientId})`;
+            const targetColor = e.data?.targetColor || '#999';
+            const sourceColor = e.data?.sourceColor || '#999';
             
             return {
               ...e, 
               animated: false, 
-              style: { stroke: themeColor, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 }, 
-              markerStart: { type: MarkerType.ArrowClosed, color: themeColor },
-              markerEnd: { type: MarkerType.ArrowClosed, color: themeColor },
-              labelStyle: { ...e.labelStyle, fill: themeColor, opacity: 1 },
+              style: { stroke: gradientStroke, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 }, 
+              markerStart: { type: MarkerType.ArrowClosed, color: sourceColor },
+              markerEnd: { type: MarkerType.ArrowClosed, color: targetColor },
+              labelStyle: { ...e.labelStyle, fill: sourceColor, opacity: 1 },
               labelBgStyle: { ...e.labelBgStyle, fillOpacity: 0.7 },
               zIndex: 0
             };
@@ -422,24 +481,29 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
       setEdges((eds) => eds.map(e => {
           const isVisible = highlightedIds.has(e.source) && highlightedIds.has(e.target);
-          // Dynamic theme update for highlighted state
-          const colorIndex = e.data?.colorIndex;
-          const themeColor = (colorIndex !== undefined) ? getColor(colorIndex, isDark) : (e.data?.originalColor || '#0070f3');
-          const color = isVisible ? themeColor : '#999';
           
+          const gradientStroke = `url(#${e.data?.gradientId})`;
+          // Highlighted: Gradient / Dimmed: Gray
+          const stroke = isVisible ? gradientStroke : (isDark ? '#333' : '#ddd');
+          
+          const targetColor = e.data?.targetColor || '#999';
+          const sourceColor = e.data?.sourceColor || '#999';
+          const markerColor = isVisible ? targetColor : (isDark ? '#333' : '#ddd');
+          const startMarkerColor = isVisible ? sourceColor : (isDark ? '#333' : '#ddd');
+
           return {
               ...e,
               animated: isVisible,
               style: { 
                   ...e.style, 
-                  stroke: color,
-                  strokeWidth: isVisible ? 8 : 1,
-                  opacity: isVisible ? 1 : 0.05, 
+                  stroke: stroke,
+                  strokeWidth: isVisible ? 4 : 1, // Highlighted thicker
+                  opacity: isVisible ? 1 : 0.1, 
                   zIndex: isVisible ? 10 : 0
               },
-              markerStart: { type: MarkerType.ArrowClosed, color: color },
-              markerEnd: { type: MarkerType.ArrowClosed, color: color },
-              labelStyle: { ...e.labelStyle, fill: color, opacity: isVisible ? 1 : 0 },
+              markerStart: { type: MarkerType.ArrowClosed, color: startMarkerColor },
+              markerEnd: { type: MarkerType.ArrowClosed, color: markerColor },
+              labelStyle: { ...e.labelStyle, fill: sourceColor, opacity: isVisible ? 1 : 0 },
               labelBgStyle: { ...e.labelBgStyle, fillOpacity: isVisible ? 0.9 : 0 }
           };
       }));
@@ -604,6 +668,9 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                 minZoom={0.1}
                 maxZoom={1.5}
             >
+                {/* --- Insert Gradient Defs --- */}
+                <EdgeGradients edges={edges} />
+
                 <Controls className="bg-content1 border border-divider shadow-sm" />
                 <Background 
                     // 修改处：亮色模式下使用 #047857 (Emerald 700) 网点，与薄荷绿背景形成对比
