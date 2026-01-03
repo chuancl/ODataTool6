@@ -466,8 +466,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   };
 
   return (
-    // 修改处：亮色模式下使用 #E0F7FA (Cyan 50) 背景，避免灰暗
-    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#E0F7FA]'}`}>
+    // 修改处：亮色模式下使用 #F0F9FF (Sky 50) 背景，这是一种非常清透的蓝色
+    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#F0F9FF]'}`}>
       {(isLoading || isProcessingLayout) && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm gap-4">
           <Spinner size="lg" color="primary" />
@@ -560,13 +560,15 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             >
                 <Controls className="bg-content1 border border-divider shadow-sm" />
                 <Background 
-                    // 修改处：亮色模式下使用深青色 (#00838F) 的网点，避免使用黑色导致"灰蒙蒙"
-                    color={isDark ? "#888" : "#00838F"} 
+                    // 修改处：亮色模式下使用浅蓝色 (#C0E4F9) 的网点
+                    // 之前的黑色或深青色在浅背景下容易产生视觉混合，导致"灰色"错觉
+                    // 使用同色系但稍深的蓝色网点可以保持清透感
+                    color={isDark ? "#888" : "#C0E4F9"} 
                     gap={20} 
                     size={isDark ? 1 : 2} 
                     variant={isDark ? undefined : BackgroundVariant.Dots}
-                    // 修改处：亮色模式下使用 #E0F7FA 背景
-                    style={isDark ? {} : { backgroundColor: '#C7EDCC' }}
+                    // 修改处：亮色模式下使用 #F0F9FF 背景
+                    style={isDark ? {} : { backgroundColor: '#F0F9FF' }}
                 />
             </ReactFlow>
         </DiagramContext.Provider>
