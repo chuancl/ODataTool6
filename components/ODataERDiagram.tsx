@@ -485,7 +485,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
       {/* Controls Overlay (Top Right) */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
-        <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border border-divider shadow-sm ${isDark ? "bg-content1/90 backdrop-blur-md" : "bg-white"}`}>
+        <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border border-divider shadow-sm ${isDark ? "bg-content1/90 backdrop-blur-md" : "bg-content1"}`}>
             <span className="text-xs font-medium text-default-500 flex items-center gap-1">
                 {showXml ? <Network size={14} className="text-primary"/> : <FileCode size={14} className="text-default-400" />}
                 {showXml ? "显示ER图" : "显示原始文件"}
@@ -495,7 +495,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
         {!showXml && (
             <>
-                <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border border-divider shadow-sm ${isDark ? "bg-content1/90 backdrop-blur-md" : "bg-white"}`}>
+                <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border border-divider shadow-sm ${isDark ? "bg-content1/90 backdrop-blur-md" : "bg-content1"}`}>
                     <span className="text-xs font-medium text-default-500 flex items-center gap-1">
                         <Zap size={14} className={isPerformanceMode ? "text-warning" : "text-default-400"} fill={isPerformanceMode ? "currentColor" : "none"} />
                         性能模式
