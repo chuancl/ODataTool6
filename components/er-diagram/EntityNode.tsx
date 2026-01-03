@@ -104,11 +104,11 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
   // --- Dynamic Styles based on Theme ---
   const containerStyle = isDark 
     ? `bg-content1 border-divider shadow-sm rounded-lg border-2`
-    : `border-black border-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg`; // Removed bg-white
+    : `border-black border-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg`; 
 
-  // In light mode, apply a tinted background based on the header color to make it vibrant
+  // In light mode, apply the SOLID header color as background (High Saturation)
   const containerDynamicStyle = isLightMode 
-    ? { backgroundColor: `${headerColorBold}26` } // 26 hex = ~15% opacity, creates a nice pastel tint of the bold color
+    ? { backgroundColor: headerColorBold } 
     : {};
 
   const selectedStyle = isDark 
@@ -172,32 +172,32 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
             // Light mode specific property styling
             let propContainerClass = "text-[10px] flex items-center justify-between p-1.5 rounded-sm border-l-2 transition-colors group ";
-            let propTextStyle = "";
             
             if (isDark) {
                 propContainerClass += isKey ? 'bg-warning/10 text-warning-700 font-semibold ' : 'text-default-600 ';
                 if (!fieldColor) propContainerClass += 'border-transparent';
             } else {
-                // Light Mode
-                propContainerClass += "border-transparent hover:bg-black/5 "; // Hover effect adapted for tinted background
-                propContainerClass += isKey ? 'text-black font-extrabold ' : 'text-gray-900 font-medium ';
+                // Light Mode (High Saturation Background)
+                // Use White text with shadow for readability on all vibrant colors
+                propContainerClass += "border-transparent hover:bg-white/20 "; 
+                propContainerClass += isKey ? 'text-white font-extrabold drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] ' : 'text-white font-semibold drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)] ';
             }
 
             return (
               <div 
                 key={prop.name} 
                 className={propContainerClass}
-                style={fieldColor ? { borderColor: fieldColor, backgroundColor: isDark ? `${fieldColor}15` : `${fieldColor}20` } : {}}
+                style={fieldColor ? { borderColor: fieldColor, backgroundColor: isDark ? `${fieldColor}15` : `rgba(255,255,255,0.3)` } : {}}
               >
                 <span className="flex items-center gap-1.5 truncate max-w-[140px]">
-                  {isKey && <Key size={10} className="shrink-0 text-amber-600" fill={!isDark ? "currentColor" : "none"} />}
-                  {fkInfo && <Link2 size={10} className="shrink-0 text-blue-600" strokeWidth={2.5} />}
+                  {isKey && <Key size={10} className="shrink-0 text-white drop-shadow-sm" fill={isDark ? "none" : "currentColor"} strokeWidth={2.5} />}
+                  {fkInfo && <Link2 size={10} className="shrink-0 text-white drop-shadow-sm" strokeWidth={2.5} />}
                   
                   <Popover placement="right" showArrow offset={10} isOpen={isOpen} onOpenChange={(open) => setActivePopoverProp(open ? prop.name : null)}>
                       <PopoverTrigger>
                           <span 
-                              className={`cursor-pointer transition-colors hover:underline decoration-dotted ${isDark ? 'hover:text-primary' : 'hover:text-blue-800'}`} 
-                              style={fieldColor ? { color: fieldColor, fontWeight: 700 } : {}}
+                              className={`cursor-pointer transition-colors hover:underline decoration-dotted ${isDark ? 'hover:text-primary' : 'hover:text-white'}`} 
+                              style={fieldColor ? { color: isDark ? fieldColor : 'white', fontWeight: 700 } : {}}
                               onClick={(e) => e.stopPropagation()}
                           >
                               {prop.name}
@@ -281,7 +281,9 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                       </PopoverContent>
                   </Popover>
                 </span>
-                <span className="text-[9px] text-default-400 ml-1 opacity-70 font-mono">{prop.type.split('.').pop()}</span>
+                <span className={`text-[9px] ml-1 font-mono ${isDark ? "text-default-400 opacity-70" : "text-white/80 drop-shadow-sm font-medium"}`}>
+                    {prop.type.split('.').pop()}
+                </span>
               </div>
             );
           })}
@@ -289,7 +291,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
           {/* Expand/Collapse */}
           {!isExpanded && hiddenCount > 0 && (
               <div 
-                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 border border-dashed border-divider ${isDark ? "text-primary hover:bg-primary/5 hover:border-primary/50" : "text-blue-800 font-bold hover:bg-blue-50 border-blue-300"}`}
+                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 border border-dashed ${isDark ? "text-primary hover:bg-primary/5 hover:border-primary/50 border-divider" : "text-white font-bold hover:bg-white/20 border-white/50 drop-shadow-sm"}`}
                   onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
               >
                   <ChevronDown size={10} />
@@ -298,7 +300,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
           )}
           {isExpanded && hiddenCount > 0 && (
               <div 
-                  className="text-[9px] text-default-400 cursor-pointer hover:bg-black/5 p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1"
+                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 ${isDark ? "text-default-400 hover:bg-black/5" : "text-white/80 hover:bg-white/20"}`}
                   onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
               >
                   <ChevronUp size={10} />
@@ -308,30 +310,30 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
           {/* Navigation Properties */}
           {data.navigationProperties && data.navigationProperties.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-divider/50">
-                  <div className="text-[9px] font-bold text-default-500 mb-1.5 px-1 uppercase tracking-wider flex items-center gap-2">
+              <div className={`mt-2 pt-2 ${isDark ? "border-t border-divider/50" : "border-t border-white/30"}`}>
+                  <div className={`text-[9px] font-bold mb-1.5 px-1 uppercase tracking-wider flex items-center gap-2 ${isDark ? "text-default-500" : "text-white/90 drop-shadow-sm"}`}>
                       <span>Navigation</span>
-                      <div className="h-px bg-divider flex-1"></div>
+                      <div className={`h-px flex-1 ${isDark ? "bg-divider" : "bg-white/30"}`}></div>
                   </div>
-                  <div className={`rounded-md p-1 flex flex-col gap-1 ${isDark ? 'bg-secondary/10 border border-secondary/10' : 'bg-white/40 border border-black/10'}`}>
+                  <div className={`rounded-md p-1 flex flex-col gap-1 ${isDark ? 'bg-secondary/10 border border-secondary/10' : 'bg-black/10 border border-black/5'}`}>
                       {data.navigationProperties.slice(0, 8).map((nav: any) => {
                           const cleanType = nav.targetType?.replace('Collection(', '').replace(')', '').split('.').pop();
                           return (
                               <div 
                                   key={nav.name} 
-                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20 text-secondary-700" : "hover:bg-white/60 bg-white/20 border border-transparent hover:border-black text-black font-medium hover:shadow-sm"}`}
+                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20 text-secondary-700" : "hover:bg-white/20 bg-white/10 border border-transparent hover:border-white/50 text-white font-medium hover:shadow-sm"}`}
                                   onClick={(e) => { e.stopPropagation(); handleJumpToEntity(cleanType, false); }}
                                   title={`Jump to ${cleanType}`}
                               >
                                   <span className="flex items-center gap-1.5 truncate w-full">
-                                      <ArrowRightCircle size={10} className={`shrink-0 transition-opacity ${isDark ? "text-secondary opacity-70 group-hover:opacity-100" : "text-black opacity-100"}`} />
-                                      <span className="font-medium text-[10px]">{nav.name}</span>
+                                      <ArrowRightCircle size={10} className={`shrink-0 transition-opacity ${isDark ? "text-secondary opacity-70 group-hover:opacity-100" : "text-white opacity-80"}`} />
+                                      <span className="font-medium text-[10px] drop-shadow-sm">{nav.name}</span>
                                   </span>
                               </div>
                           );
                       })}
                       {data.navigationProperties.length > 8 && (
-                          <div className="text-[9px] text-default-400 text-center pt-1 italic">
+                          <div className={`text-[9px] text-center pt-1 italic ${isDark ? "text-default-400" : "text-white/70"}`}>
                               + {data.navigationProperties.length - 8} more relations
                           </div>
                       )}
