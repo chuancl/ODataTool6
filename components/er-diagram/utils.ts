@@ -14,44 +14,52 @@ const PALETTE = [
   '#06B6D4', '#F97316', '#EC4899', '#8B5CF6', '#10B981'
 ];
 
-// 新增：高饱和度、鲜艳、奔放的色板 (用于亮色模式)
-// 包含：Cyan, Hot Pink, Lime, Bright Orange, Electric Purple, Yellow, etc.
+// 新增：高饱和度、鲜艳、奔放的色板 (用于亮色模式 Edge 连线等)
+// 依然保留这组用于 Edge，因为 Edge 需要足够醒目
 const BOLD_PALETTE = [
-  '#06b6d4', // Cyan
-  '#f43f5e', // Rose
-  '#84cc16', // Lime
-  '#f97316', // Orange
-  '#d946ef', // Fuchsia
-  '#8b5cf6', // Violet
-  '#eab308', // Yellow
-  '#14b8a6', // Teal
-  '#3b82f6', // Blue
-  '#f59e0b', // Amber
+  '#9966ff', // Purple
+  '#6666ff', // Indigo
+  '#6699ff', // Blue
+  '#66ff99', // Mint
+  '#ffff66', // Yellow
+  '#ffcc66', // Orange
+  '#ff9966', // Salmon
+  '#ff6666', // Red
 ];
 
-// 新增：协调的双色主题 (Header/Body Pair)
-// 格式: { header: 深色/艳丽色, body: 浅色/同色系背景, border: 边框色(通常同header), text: 主体文字色 }
+/**
+ * 实体主题配置 (Entity Themes)
+ * 根据用户指定的色值范围进行组合
+ * 
+ * Header Colors: 9966ff, 6666ff, 6699ff, 66ff99, ffff66, ffcc66, ff9966, ff6666
+ * Body Colors:   abcdef (Blueish), bedcaf (Greenish), cafedb (Minty), decafb (Purpleish)
+ * Border Colors: aaaaaa, bbbbbb, cccccc, dddddd
+ * Text Colors:   1a2a3a, 2a3a4a, 3a4a5a, 4a5a6a
+ */
 const ENTITY_THEMES = [
-    // Cyan Theme
-    { header: '#0891b2', body: '#ecfeff', border: '#0891b2', text: '#164e63' }, // Cyan 600 / 50
-    // Rose Theme
-    { header: '#e11d48', body: '#fff1f2', border: '#e11d48', text: '#881337' }, // Rose 600 / 50
-    // Emerald Theme
-    { header: '#059669', body: '#ecfdf5', border: '#059669', text: '#064e3b' }, // Emerald 600 / 50
-    // Violet Theme
-    { header: '#7c3aed', body: '#f5f3ff', border: '#7c3aed', text: '#4c1d95' }, // Violet 600 / 50
-    // Amber Theme
-    { header: '#d97706', body: '#fffbeb', border: '#d97706', text: '#78350f' }, // Amber 600 / 50
-    // Blue Theme
-    { header: '#2563eb', body: '#eff6ff', border: '#2563eb', text: '#1e3a8a' }, // Blue 600 / 50
-    // Fuchsia Theme
-    { header: '#c026d3', body: '#fdf4ff', border: '#c026d3', text: '#701a75' }, // Fuchsia 600 / 50
-    // Teal Theme
-    { header: '#0d9488', body: '#f0fdfa', border: '#0d9488', text: '#134e4a' }, // Teal 600 / 50
-    // Lime Theme
-    { header: '#65a30d', body: '#f7fee7', border: '#65a30d', text: '#365314' }, // Lime 600 / 50
-    // Orange Theme
-    { header: '#ea580c', body: '#fff7ed', border: '#ea580c', text: '#7c2d12' }, // Orange 600 / 50
+    // 1. Purple Header -> Lavender Body
+    { header: '#9966ff', body: '#decafb', border: '#aaaaaa', text: '#1a2a3a' },
+    
+    // 2. Indigo Header -> Pale Blue Body
+    { header: '#6666ff', body: '#abcdef', border: '#bbbbbb', text: '#2a3a4a' },
+    
+    // 3. Blue Header -> Pale Blue Body
+    { header: '#6699ff', body: '#abcdef', border: '#cccccc', text: '#3a4a5a' },
+    
+    // 4. Green Header -> Minty Body
+    { header: '#66ff99', body: '#cafedb', border: '#dddddd', text: '#4a5a6a' },
+    
+    // 5. Yellow Header -> Greenish/Neutral Body (Contrast)
+    { header: '#ffff66', body: '#bedcaf', border: '#aaaaaa', text: '#1a2a3a' },
+    
+    // 6. Orange Header -> Greenish/Neutral Body
+    { header: '#ffcc66', body: '#bedcaf', border: '#bbbbbb', text: '#2a3a4a' },
+    
+    // 7. Salmon Header -> Lavender Body (Warm/Cool contrast)
+    { header: '#ff9966', body: '#decafb', border: '#cccccc', text: '#3a4a5a' },
+    
+    // 8. Red Header -> Minty/Greenish Body (Complementaryish) or Blueish
+    { header: '#ff6666', body: '#cafedb', border: '#dddddd', text: '#4a5a6a' },
 ];
 
 export const getColor = (index: number, isBoldMode: boolean = false) => {
