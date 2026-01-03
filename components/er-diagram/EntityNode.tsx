@@ -30,7 +30,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
   // Calculate distinct theme for the Entity
   const hashCode = Math.abs(generateHashCode(id));
-  const theme = getEntityTheme(hashCode);
+  const theme = getEntityTheme(hashCode, isDark); // Changed: Pass isDark
 
   // 监听 Handles 变化
   const dynamicHandles: DynamicHandleConfig[] = data.dynamicHandles || [];
@@ -178,7 +178,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             let fkTargetColor = null;
             if (fkInfo?.targetEntity) {
                 const fkHashCode = Math.abs(generateHashCode(fkInfo.targetEntity));
-                fkTargetColor = getEntityTheme(fkHashCode).header;
+                fkTargetColor = getEntityTheme(fkHashCode, isDark).header; // Changed: Pass isDark
             }
 
             // 2. Determine Property Text Color
@@ -327,7 +327,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                           
                           // Calculate target entity color for Nav Item
                           const targetHashCode = Math.abs(generateHashCode(cleanType));
-                          const targetTheme = getEntityTheme(targetHashCode);
+                          const targetTheme = getEntityTheme(targetHashCode, isDark); // Changed: Pass isDark
                           const targetColor = targetTheme.header;
 
                           return (

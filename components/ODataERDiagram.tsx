@@ -125,30 +125,39 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   // Sync Edge Styles based on Theme
   useEffect(() => {
       setEdges((eds) => eds.map(edge => {
-          const originalColor = edge.data?.originalColor;
+          // Dynamic calculation based on stored color index to support Dark Mode palette
+          const colorIndex = edge.data?.colorIndex;
+          const themeColor = (colorIndex !== undefined) ? getColor(colorIndex, isDark) : (edge.data?.originalColor || '#999');
+          
           // 亮色模式下：线条更粗，颜色更深一点（或保持原色），不透明
           const strokeWidth = isDark ? 2 : 3;
           const opacity = isDark ? 0.8 : 1;
-          // 亮色模式下，如果需要更强烈的对比，可以使用纯黑或保持原色但加粗
-          // 这里保持原色但加粗，配合节点的硬边框
           
           return {
               ...edge,
               style: { 
                   ...edge.style, 
-                  stroke: originalColor, 
+                  stroke: themeColor, 
                   strokeWidth: strokeWidth, 
                   opacity: opacity 
               },
+              markerStart: (typeof edge.markerStart === 'object' && edge.markerStart) ? { 
+                  ...edge.markerStart, 
+                  color: themeColor 
+              } : edge.markerStart,
+              markerEnd: (typeof edge.markerEnd === 'object' && edge.markerEnd) ? { 
+                  ...edge.markerEnd, 
+                  color: themeColor 
+              } : edge.markerEnd,
               labelStyle: {
                   ...edge.labelStyle,
                   fontWeight: isDark ? 400 : 700, // 亮色模式加粗文字
-                  fill: originalColor
+                  fill: themeColor
               },
               labelBgStyle: {
                   ...edge.labelBgStyle,
                   fill: isDark ? '#18181b' : '#ffffff', // 标签背景适配
-                  stroke: isDark ? 'transparent' : originalColor,
+                  stroke: isDark ? 'transparent' : themeColor,
                   strokeWidth: isDark ? 0 : 1
               }
           };
@@ -225,12 +234,10 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
                 if (targetName && entities.find(n => n.name === targetName)) {
                     const pairKey = [entity.name, targetName].sort().join('::');
-                    // 亮色模式使用 Bold Palette
+                    
                     const colorIndex = Math.abs(generateHashCode(pairKey));
-                    // 初始生成使用通用逻辑，颜色会在 Node 组件内部根据 isDark 二次处理
-                    // 但 Edge 颜色需要在这里定。为了简单，Edge 使用 Bold Palette，因为在暗色模式下也好看。
-                    // 或者我们这里始终使用 BOLD 颜色给 Edge，暗色模式下会自动降低不透明度
-                    const edgeColor = getColor(colorIndex, true); 
+                    // Initial calculation uses default palette (light mode default is fine here as it gets updated by useEffect)
+                    const edgeColor = getColor(colorIndex, false); 
                     
                     if (nav.constraints && nav.constraints.length > 0) {
                         nav.constraints.forEach((c: any) => {
@@ -251,7 +258,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                         source: entity.name,
                         target: targetName,
                         label: label,
-                        color: edgeColor
+                        color: edgeColor,
+                        data: { colorIndex } // Store index for dynamic theming
                     });
                 }
             }
@@ -329,7 +337,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             label: e.label,
             labelStyle: { fill: e.color, fontWeight: isDark ? 400 : 700, fontSize: 10 },
             labelBgStyle: { fill: isDark ? '#ffffff' : '#f4f4f5', fillOpacity: 0.8, rx: 4, ry: 4 },
-            data: { originalColor: e.color }
+            data: { originalColor: e.color, colorIndex: e.data.colorIndex }
         }));
 
         const { nodes: finalNodes, edges: finalEdges } = calculateDynamicLayout(preCalcNodes, preCalcEdges);
@@ -380,16 +388,22 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               ...n,
               style: { ...n.style, opacity: 1, filter: 'none' }
           })));
-          setEdges((eds) => eds.map(e => ({
+          setEdges((eds) => eds.map(e => {
+            // Dynamic theme update for reset state
+            const colorIndex = e.data?.colorIndex;
+            const themeColor = (colorIndex !== undefined) ? getColor(colorIndex, isDark) : (e.data?.originalColor);
+            
+            return {
               ...e, 
               animated: false, 
-              style: { stroke: e.data?.originalColor, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 }, 
-              markerStart: { type: MarkerType.ArrowClosed, color: e.data?.originalColor },
-              markerEnd: { type: MarkerType.ArrowClosed, color: e.data?.originalColor },
-              labelStyle: { ...e.labelStyle, fill: e.data?.originalColor, opacity: 1 },
+              style: { stroke: themeColor, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 }, 
+              markerStart: { type: MarkerType.ArrowClosed, color: themeColor },
+              markerEnd: { type: MarkerType.ArrowClosed, color: themeColor },
+              labelStyle: { ...e.labelStyle, fill: themeColor, opacity: 1 },
               labelBgStyle: { ...e.labelBgStyle, fillOpacity: 0.7 },
               zIndex: 0
-          })));
+            };
+          }));
           return;
       }
 
@@ -408,7 +422,10 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
       setEdges((eds) => eds.map(e => {
           const isVisible = highlightedIds.has(e.source) && highlightedIds.has(e.target);
-          const color = isVisible ? (e.data?.originalColor || '#0070f3') : '#999';
+          // Dynamic theme update for highlighted state
+          const colorIndex = e.data?.colorIndex;
+          const themeColor = (colorIndex !== undefined) ? getColor(colorIndex, isDark) : (e.data?.originalColor || '#0070f3');
+          const color = isVisible ? themeColor : '#999';
           
           return {
               ...e,
