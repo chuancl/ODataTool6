@@ -294,18 +294,33 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                     style={isLightMode ? { backgroundColor: theme.nav } : {}}
                   >
                       {data.navigationProperties.slice(0, 8).map((nav: any) => {
-                          const cleanType = nav.targetType?.replace('Collection(', '').replace(')', '').split('.').pop();
+                          const cleanType = nav.targetType?.replace('Collection(', '').replace(')', '').split('.').pop() || '';
+                          
+                          // --- Change: Calculate target entity color ---
+                          const targetHashCode = Math.abs(generateHashCode(cleanType));
+                          const targetTheme = getEntityTheme(targetHashCode);
+                          const targetColor = targetTheme.header;
+
                           return (
                               <div 
                                   key={nav.name} 
-                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20 text-secondary-700" : "hover:bg-white/40 bg-white/20 border border-transparent hover:shadow-sm"}`}
-                                  style={isLightMode ? { color: theme.text } : {}}
+                                  // Removed text-secondary-700 from class
+                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20" : "hover:bg-white/40 bg-white/20 border border-transparent hover:shadow-sm"}`}
                                   onClick={(e) => { e.stopPropagation(); handleJumpToEntity(cleanType, false); }}
                                   title={`Jump to ${cleanType}`}
                               >
                                   <span className="flex items-center gap-1.5 truncate w-full">
-                                      <ArrowRightCircle size={10} className={`shrink-0 transition-opacity ${isDark ? "text-secondary opacity-70 group-hover:opacity-100" : "opacity-70 group-hover:opacity-100"}`} style={isLightMode ? { color: theme.header } : {}} />
-                                      <span className="font-medium text-[10px]">{nav.name}</span>
+                                      <ArrowRightCircle 
+                                        size={10} 
+                                        className={`shrink-0 transition-opacity opacity-70 group-hover:opacity-100`} 
+                                        style={{ color: targetColor }} 
+                                      />
+                                      <span 
+                                        className="font-medium text-[10px]" 
+                                        style={{ color: targetColor }}
+                                      >
+                                        {nav.name}
+                                      </span>
                                   </span>
                               </div>
                           );
