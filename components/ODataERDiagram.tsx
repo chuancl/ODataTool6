@@ -485,7 +485,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
       {/* Controls Overlay (Top Right) */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
-        {/* Toggle View Box: Blue Background, Purple Switch */}
+        {/* Toggle View Box: Blue Background, Green Switch */}
         <div className="flex items-center gap-2 p-1.5 px-3 rounded-lg border border-transparent shadow-sm bg-primary text-white">
             <span className="text-xs font-medium flex items-center gap-1">
                 {showXml ? <Network size={14} className="text-white"/> : <FileCode size={14} className="text-white/80" />}
@@ -493,12 +493,12 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             </span>
             <Switch 
                 size="sm" 
-                color="secondary" // Purple switch on blue
+                color="success" // Changed from secondary (purple) to success (green)
                 isSelected={showXml} 
                 onValueChange={setShowXml} 
                 aria-label="Toggle View"
                 classNames={{
-                    wrapper: "bg-default/40 group-data-[selected=true]:bg-secondary" 
+                    wrapper: "bg-default/40 group-data-[selected=true]:bg-success" 
                 }}
             />
         </div>
