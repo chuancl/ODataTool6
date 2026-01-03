@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import ReactFlow, { 
   Controls, 
@@ -219,7 +218,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             label: e.name, 
             namespace, 
             properties: e.properties, 
-            keys: e.keys,
+            keys: e.keys, 
             navigationProperties: e.navigationProperties,
             fieldColors: fieldColorMap[e.name] || {},
             dynamicHandles: [] 
@@ -427,8 +426,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   return (
     // 修改处：根据 isDark 动态切换背景颜色
     // 暗色模式：bg-content2/30 (保持原样)
-    // 亮色模式：bg-[#F4F4F5] (浅灰色，增加与白色节点的对比度)
-    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#F4F4F5]'}`}>
+    // 亮色模式：bg-[#E3F2FD] (浅蓝色/淡天蓝，更鲜艳，避免灰色)
+    <div className={`w-full h-full relative ${isDark ? 'bg-content2/30' : 'bg-[#E3F2FD]'}`}>
       {(isLoading || isProcessingLayout) && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm gap-4">
           <Spinner size="lg" color="primary" />
