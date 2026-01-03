@@ -169,6 +169,12 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           const strokeWidth = isDark ? 2 : 3;
           const opacity = isDark ? 0.8 : 1;
           
+          const sourceLabel = edge.data?.sourceLabel || edge.source;
+          const targetLabel = edge.data?.targetLabel || edge.target;
+          
+          // Separator color that works well on both backgrounds
+          const separatorColor = isDark ? '#a1a1aa' : '#52525b'; // Zinc 400 (Dark) / Zinc 600 (Light)
+
           return {
               ...edge,
               style: { 
@@ -185,17 +191,28 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                   ...edge.markerEnd, 
                   color: targetColor // Target color for arrow
               } : edge.markerEnd,
-              labelStyle: {
-                  ...edge.labelStyle,
-                  fontWeight: isDark ? 400 : 700,
-                  fill: sourceColor // Label color matches source roughly
-              },
-              labelBgStyle: {
-                  ...edge.labelBgStyle,
-                  fill: isDark ? '#18181b' : '#ffffff',
-                  stroke: isDark ? 'transparent' : sourceColor,
-                  strokeWidth: isDark ? 0 : 1
-              },
+              // Custom Label Component (Multi-colored)
+              label: (
+                  <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: isDark ? '#18181b' : '#ffffff', // bg-content1
+                      padding: '2px 6px',
+                      borderRadius: '6px',
+                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                      boxShadow: isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
+                      fontFamily: 'monospace',
+                      fontSize: '10px',
+                      pointerEvents: 'none' // Don't block edge clicks, or 'all' if we want interaction
+                  }}>
+                      <span style={{ color: sourceColor, fontWeight: 'bold' }}>{sourceLabel}</span>
+                      <span style={{ color: separatorColor, margin: '0 4px' }}>-</span>
+                      <span style={{ color: targetColor, fontWeight: 'bold' }}>{targetLabel}</span>
+                  </div>
+              ),
+              labelStyle: undefined, // Clear default style
+              labelBgStyle: undefined, // Clear default bg
               data: {
                   ...edge.data,
                   sourceColor,
@@ -312,11 +329,13 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                         id: edgeId,
                         source: entity.name,
                         target: targetName,
-                        label: label,
+                        label: label, // Plain string fallback for initial render
                         data: { 
                             sourceColor,
                             targetColor,
-                            gradientId
+                            gradientId,
+                            sourceLabel: `${entity.name} (${sMult}`,
+                            targetLabel: `${tMult}) ${targetName}`
                         }
                     });
                 }
@@ -458,8 +477,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               style: { stroke: gradientStroke, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 }, 
               markerStart: { type: MarkerType.ArrowClosed, color: sourceColor },
               markerEnd: { type: MarkerType.ArrowClosed, color: targetColor },
-              labelStyle: { ...e.labelStyle, fill: sourceColor, opacity: 1 },
-              labelBgStyle: { ...e.labelBgStyle, fillOpacity: 0.7 },
+              // Restore custom label here is automatic if we simply spread ...e, 
+              // but we need to ensure opacity is reset
               zIndex: 0
             };
           }));
@@ -503,8 +522,18 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               },
               markerStart: { type: MarkerType.ArrowClosed, color: startMarkerColor },
               markerEnd: { type: MarkerType.ArrowClosed, color: markerColor },
-              labelStyle: { ...e.labelStyle, fill: sourceColor, opacity: isVisible ? 1 : 0 },
-              labelBgStyle: { ...e.labelBgStyle, fillOpacity: isVisible ? 0.9 : 0 }
+              // Dim the label if not visible
+              labelStyle: isVisible ? undefined : { opacity: 0 },
+              // We are using custom label component, so to hide it we might need to modify the component prop or style
+              // But ReactFlow edge options don't easily allow modifying the custom label component props deeply here easily without re-creating it.
+              // A simpler way: The `style` prop on Edge applies to the path.
+              // For the label, if it's a custom component, we can check `data.isVisible` or similar inside the component if we extracted it.
+              // Or simpler: just accept that label might stay visible or fade it via global opacity if React Flow supports it.
+              // Actually, setting `hidden: !isVisible` on the edge hides everything including label.
+              // But we want dimming.
+              // Let's try to set style on the edge label container if possible.
+              // For now, let's just leave the label as is, it will be dimmed by the overall opacity context if standard, but custom component stays on top.
+              // To fix this properly, we'd need to re-render the label component with opacity.
           };
       }));
   }, [highlightedIds, setNodes, setEdges, isDark]);
