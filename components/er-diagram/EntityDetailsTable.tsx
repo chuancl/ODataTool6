@@ -1,9 +1,9 @@
 
-
 import React, { useMemo, useState } from 'react';
 import { EntityProperty } from '@/utils/odata-helper';
 import { Key, Link2, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, createColumnHelper, SortingState, ColumnOrderState } from '@tanstack/react-table';
+import { generateHashCode, getEntityTheme } from './utils';
 
 export const EntityDetailsTable = ({ 
     properties, 
@@ -13,7 +13,8 @@ export const EntityDetailsTable = ({
     onFocus,
     themeBody,
     themeNav,
-    isDark = false // Add isDark prop
+    isDark = false, // Add isDark prop
+    entityColorIndex = 0 // New prop for consistent coloring
 }: { 
     properties: EntityProperty[], 
     keys: string[], 
@@ -22,13 +23,17 @@ export const EntityDetailsTable = ({
     onFocus?: () => void,
     themeBody?: string,
     themeNav?: string,
-    isDark?: boolean
+    isDark?: boolean,
+    entityColorIndex?: number
 }) => {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(['name', 'type', 'size', 'attributes', 'defaultValue', 'relation']);
     const [draggingColumn, setDraggingColumn] = useState<string | null>(null);
 
     const columnHelper = createColumnHelper<EntityProperty>();
+
+    // Pre-calculate current entity theme
+    const currentTheme = useMemo(() => getEntityTheme(entityColorIndex, isDark), [entityColorIndex, isDark]);
 
     const columns = useMemo(() => [
         // 1. Name Column
@@ -38,12 +43,32 @@ export const EntityDetailsTable = ({
             enableSorting: true,
             minSize: 110,
             cell: info => {
-                const isKey = keys.includes(info.getValue());
+                const name = info.getValue();
+                const isKey = keys.includes(name);
+                const fkInfo = getFkInfo(name);
+
+                // --- Color Logic ---
+                // Default Text Color
+                let textColor = isDark ? '#abb2bf' : '#1a2a3a'; 
+                
+                if (isKey) {
+                    // PK matches current entity color
+                    textColor = currentTheme.header;
+                } else if (fkInfo) {
+                    // FK matches target entity color
+                    const targetHash = Math.abs(generateHashCode(fkInfo.targetEntity));
+                    const targetTheme = getEntityTheme(targetHash, isDark);
+                    textColor = targetTheme.header;
+                }
+
                 return (
                     <div className="flex items-center gap-2">
-                        {isKey ? <Key size={14} className={isDark ? "text-[#e5c07b] shrink-0" : "text-warning shrink-0"} /> : <div className="w-3.5" />}
-                        <span className={`${isKey ? "font-bold" : ""} text-xs ${isDark ? (isKey ? "text-[#e5c07b]" : "text-[#abb2bf]") : (isKey ? "text-foreground" : "text-default-700")}`}>
-                            {info.getValue()}
+                        {isKey ? <Key size={14} className="shrink-0" style={{ color: currentTheme.header }} /> : <div className="w-3.5" />}
+                        <span 
+                            className={`${isKey ? "font-bold" : "font-medium"} text-xs`}
+                            style={{ color: textColor }}
+                        >
+                            {name}
                         </span>
                     </div>
                 );
@@ -159,12 +184,18 @@ export const EntityDetailsTable = ({
             cell: info => {
                 const fk = getFkInfo(info.row.original.name);
                 if (!fk) return null;
+                
+                // Calculate target entity color
+                const targetHash = Math.abs(generateHashCode(fk.targetEntity));
+                const targetTheme = getEntityTheme(targetHash, isDark);
+                
                 return (
                     <div className="flex items-center gap-1 text-xs w-full group">
                         <Link2 size={12} className={isDark ? "text-[#61afef] shrink-0" : "text-secondary shrink-0"} />
                         <div className="flex items-center gap-0.5 overflow-hidden">
                             <span 
-                                className={`font-bold cursor-pointer hover:underline truncate ${isDark ? "text-[#61afef]" : "text-secondary hover:text-secondary-600"}`} 
+                                className="font-bold cursor-pointer hover:underline truncate"
+                                style={{ color: targetTheme.header }} 
                                 // STRATEGY: 
                                 // 1. Stop propagation on MouseDown. This prevents the Root 'onMouseDown' (which triggers Z-index update) 
                                 //    from firing immediately. This PROTECTS the link click from being killed by a re-render race condition.
@@ -187,7 +218,7 @@ export const EntityDetailsTable = ({
             }
         })
 
-    ], [keys, getFkInfo, onJumpToEntity, onFocus, isDark]);
+    ], [keys, getFkInfo, onJumpToEntity, onFocus, isDark, currentTheme]);
 
     const table = useReactTable({
         data: properties,
@@ -204,9 +235,7 @@ export const EntityDetailsTable = ({
     // Dark Mode Colors
     const darkHeaderBg = '#21252b';
     const darkBorder = '#3e4451';
-    const darkHover = '#2c313a';
     const darkText = '#abb2bf';
-    const darkMuted = '#5c6370';
 
     return (
         <div className="w-full h-full flex flex-col" style={!isDark && themeBody ? { backgroundColor: themeBody } : {}}>

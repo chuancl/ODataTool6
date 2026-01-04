@@ -177,10 +177,12 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             const isOpen = activePopoverProp === prop.name;
 
             // --- COLOR LOGIC ---
-            // 1. Calculate FK Target Color
+            // 1. Calculate Text Color (Applies to both Dark and Light mode as per requirement)
+            // PK: Matches current entity header color
+            // FK: Matches target entity header color
             let propTextColor = undefined;
             if (isKey) {
-                propTextColor = theme.header; // Use Current Entity Color
+                propTextColor = theme.header; 
             } else if (fkInfo) {
                 const fkHashCode = Math.abs(generateHashCode(fkInfo.targetEntity));
                 propTextColor = getEntityTheme(fkHashCode, isDark).header;
@@ -212,7 +214,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
             // Override text color if we have a specific propTextColor (PK or FK)
             // For Dark mode, use propTextColor if available (accents), else default grey (#abb2bf)
-            const finalTextColor = propTextColor || (isLightMode ? theme.text : '#abb2bf');
+            const finalTextColor = propTextColor || (isLightMode ? '#1a2a3a' : '#abb2bf');
             
             // Apply field highlight color if exists (e.g. from hovering lines)
             if (fieldColor) {
@@ -248,7 +250,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                           <div className="text-xs flex flex-col gap-3">
                               {/* ... Popover Content ... */}
                               <div className="font-bold flex items-center justify-between border-b border-divider pb-2">
-                                  <span className="flex items-center gap-2 text-sm">
+                                  <span className="flex items-center gap-2 text-sm" style={{ color: finalTextColor }}>
                                       {prop.name}
                                       {isKey && <Chip size="sm" color="warning" variant="flat" className="h-4 text-[9px] px-1">PK</Chip>}
                                       {fkInfo && <Chip size="sm" color="secondary" variant="flat" className="h-4 text-[9px] px-1">FK</Chip>}
@@ -274,7 +276,10 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                                                   setActivePopoverProp(null);
                                               }}
                                           >
-                                              <span className="font-bold text-secondary group-hover/link:underline flex items-center gap-1">
+                                              <span 
+                                                className="font-bold group-hover/link:underline flex items-center gap-1"
+                                                style={{ color: propTextColor || 'inherit' }}
+                                              >
                                                   {fkInfo.targetEntity} 
                                                   <ArrowRightCircle size={10} />
                                               </span>
@@ -448,6 +453,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                             themeBody={isLightMode ? theme.body : undefined}
                             themeNav={isLightMode ? theme.nav : undefined}
                             isDark={isDark} // Pass Dark Mode flag
+                            entityColorIndex={colorIndex} // Pass color index to table
                         />
                 </ScrollShadow>
                 
