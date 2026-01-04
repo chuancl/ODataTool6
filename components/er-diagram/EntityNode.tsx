@@ -381,6 +381,11 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                         ? { backgroundColor: `${theme.header}15`, color: theme.header } 
                         : { backgroundColor: theme.header, borderColor: theme.header }
                     }
+                    onMouseDown={(e) => {
+                        e.stopPropagation();
+                        addActiveEntity(id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex items-center gap-3 font-bold text-sm text-inherit">
                         {/* Icon: Use text-inherit (current color) or explicit style in dark mode */}
