@@ -29,8 +29,9 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
   const isLightMode = !isDark;
 
   // Calculate distinct theme for the Entity
-  const hashCode = Math.abs(generateHashCode(id));
-  const theme = getEntityTheme(hashCode, isDark); // Changed: Pass isDark
+  // Use graph-colored index if available, otherwise fallback to hash
+  const colorIndex = data.colorIndex !== undefined ? data.colorIndex : Math.abs(generateHashCode(id));
+  const theme = getEntityTheme(colorIndex, isDark); 
 
   // 监听 Handles 变化
   const dynamicHandles: DynamicHandleConfig[] = data.dynamicHandles || [];
@@ -176,19 +177,26 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
             // --- COLOR LOGIC ---
             // 1. Calculate FK Target Color
-            let fkTargetColor = null;
-            if (fkInfo?.targetEntity) {
-                const fkHashCode = Math.abs(generateHashCode(fkInfo.targetEntity));
-                fkTargetColor = getEntityTheme(fkHashCode, isDark).header; // Changed: Pass isDark
-            }
-
-            // 2. Determine Property Text Color
-            // Priority: PK Color > FK Color > Default
+            // Try to look up graph color from global map if possible, but Node doesn't know full graph here.
+            // However, we can use hash fallback for consistent coloring of "other" entities if data not present.
+            // Ideally, we'd pass a color map, but calculating hash is consistent enough for link icons.
+            // NOTE: The main node color comes from data.colorIndex (optimized).
+            // For link icons, we might not have the target's colorIndex easily available without a lookup context.
+            // Fallback to hash for icon color is acceptable or we could inject a lookup table. 
+            // For simplicity and performance, we'll keep using hash-based coloring for the small icons, 
+            // OR use the current node's theme color if it's a key.
+            
             let propTextColor = undefined;
             if (isKey) {
                 propTextColor = theme.header; // Use Current Entity Color
-            } else if (fkTargetColor) {
-                propTextColor = fkTargetColor; // Use Target Entity Color
+            } else if (fkInfo) {
+                // For FKs, we use the FK target color. 
+                // Since we don't have the target's optimized color index here, 
+                // we'll stick to hash-based color for the *Icon* to ensure it at least has A color.
+                // Or better: The main requirement is "Direct relationships use different colors".
+                // The edge line handles the visual connection. The icon is just a hint.
+                const fkHashCode = Math.abs(generateHashCode(fkInfo.targetEntity));
+                propTextColor = getEntityTheme(fkHashCode, isDark).header;
             }
 
             // Light mode specific property styling
@@ -329,6 +337,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                           const cleanType = nav.targetType?.replace('Collection(', '').replace(')', '').split('.').pop() || '';
                           
                           // Calculate target entity color for Nav Item
+                          // Fallback to hash for simplicity in list
                           const targetHashCode = Math.abs(generateHashCode(cleanType));
                           const targetTheme = getEntityTheme(targetHashCode, isDark); // Changed: Pass isDark
                           const targetColor = targetTheme.header;

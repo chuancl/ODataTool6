@@ -1,4 +1,6 @@
 
+import { EntityType } from "@/utils/odata-helper";
+
 // 生成字符串 Hash
 export const generateHashCode = (str: string) => {
   let hash = 0;
@@ -32,6 +34,10 @@ const PALETTE_DARK = [
   '#d19a66', // Orange
   '#be5046', // Dark Red
 ];
+
+// Export lengths for graph coloring
+export const PALETTE_LIGHT_LEN = PALETTE_LIGHT.length;
+export const PALETTE_DARK_LEN = PALETTE_DARK.length;
 
 /**
  * 实体主题配置 (Entity Themes for Light Mode)
@@ -77,4 +83,86 @@ export const getEntityTheme = (index: number, isDark: boolean = false) => {
             text: '#abb2bf' // One Dark Pro Text
         };
     }
+};
+
+/**
+ * 图着色算法 (Greedy Coloring)
+ * 为每个实体分配一个颜色索引，尽力保证相邻实体颜色不同
+ */
+export const computeGraphColoring = (entities: EntityType[], isDark: boolean): Record<string, number> => {
+    const paletteLength = isDark ? PALETTE_DARK_LEN : PALETTE_LIGHT_LEN;
+    const colors: Record<string, number> = {};
+    const adj: Record<string, Set<string>> = {};
+
+    // 1. 构建邻接表
+    entities.forEach(e => {
+        if (!adj[e.name]) adj[e.name] = new Set();
+        e.navigationProperties.forEach(nav => {
+            let target = nav.targetType;
+            if (target) {
+                if (target.startsWith('Collection(')) target = target.slice(11, -1);
+                target = target.split('.').pop();
+                if (target && target !== e.name) { // 忽略自引用
+                    adj[e.name].add(target);
+                    // 无向图视角：同时也记录反向关系，确保双方都知道对方
+                    if (!adj[target]) adj[target] = new Set();
+                    adj[target].add(e.name);
+                }
+            }
+        });
+    });
+
+    // 2. 贪婪着色
+    // 为了结果确定性，先按度数(连接数)降序排序，度数相同按名称排序
+    // (度数高的节点先着色通常效果更好)
+    const sortedEntities = [...entities].sort((a, b) => {
+        const degreeA = adj[a.name]?.size || 0;
+        const degreeB = adj[b.name]?.size || 0;
+        if (degreeB !== degreeA) return degreeB - degreeA;
+        return a.name.localeCompare(b.name);
+    });
+
+    sortedEntities.forEach(e => {
+        const neighborColors = new Set<number>();
+        (adj[e.name] || []).forEach(neighborName => {
+            if (colors[neighborName] !== undefined) {
+                neighborColors.add(colors[neighborName]);
+            }
+        });
+
+        // 寻找第一个未被邻居使用的颜色索引 (0..paletteLength-1)
+        let chosenColor = -1;
+        for (let i = 0; i < paletteLength; i++) {
+            if (!neighborColors.has(i)) {
+                chosenColor = i;
+                break;
+            }
+        }
+
+        // 如果所有颜色都被邻居占用了 (冲突不可避免)
+        if (chosenColor === -1) {
+            // 策略：选择被邻居使用次数最少的颜色，以减少视觉混淆
+            const usageCount = new Array(paletteLength).fill(0);
+            (adj[e.name] || []).forEach(neighborName => {
+                if (colors[neighborName] !== undefined) {
+                    usageCount[colors[neighborName]]++;
+                }
+            });
+            
+            // 找到使用次数最少的索引
+            let minUsage = Infinity;
+            let minIndex = 0;
+            for (let i = 0; i < paletteLength; i++) {
+                if (usageCount[i] < minUsage) {
+                    minUsage = usageCount[i];
+                    minIndex = i;
+                }
+            }
+            chosenColor = minIndex;
+        }
+
+        colors[e.name] = chosenColor;
+    });
+
+    return colors;
 };
