@@ -110,37 +110,6 @@ const EdgeGradients = React.memo(({ edges, nodes }: { edges: Edge[], nodes: Node
     );
 });
 
-// --- Helper: Create Custom Edge Label JSX ---
-const createEdgeLabel = (sourceLabel: string, targetLabel: string, sourceColor: string, targetColor: string, isDark: boolean) => {
-    return (
-        <div className="nodrag nopan" style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: isDark ? '#21252b' : '#ffffff', 
-            padding: '4px 8px',
-            borderRadius: '6px',
-            border: `1px solid ${isDark ? '#3e4451' : '#e4e4e7'}`, 
-            boxShadow: isDark ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0,0,0,0.05)',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            fontSize: '11px', 
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-            pointerEvents: 'all', // Ensure clicks work if needed
-        }}>
-            <span style={{ color: sourceColor }}>{sourceLabel}</span>
-            {/* Distinct Separator Color */}
-            <span style={{ 
-                color: isDark ? '#abb2bf' : '#71717a', // One Dark Grey / Zinc 500
-                margin: '0 6px',
-                fontWeight: 800,
-                opacity: 0.8
-            }}>—</span>
-            <span style={{ color: targetColor }}>{targetLabel}</span>
-        </div>
-    );
-};
-
 const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlContent, isDark = true }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -212,6 +181,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   useEffect(() => { edgesRef.current = edges; }, [edges]);
 
   // --- Theme & Color Sync Effect ---
+  // Re-creates edges when theme or schema changes to ensure colors and labels are correct
   useEffect(() => {
       if (!schema?.entities) return;
 
@@ -257,9 +227,36 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               markerStart: (typeof edge.markerStart === 'object' && edge.markerStart) ? { ...edge.markerStart, color: sourceColor } : edge.markerStart,
               markerEnd: (typeof edge.markerEnd === 'object' && edge.markerEnd) ? { ...edge.markerEnd, color: targetColor } : edge.markerEnd,
               
-              // Apply Custom JSX Label
-              label: createEdgeLabel(sourceLabel, targetLabel, sourceColor, targetColor, isDark),
-              // Clear default styling to prevent conflicts
+              // --- Custom JSX Label ---
+              // Using inline JSX to ensure React Flow renders it correctly
+              label: (
+                <div className="nodrag nopan" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: isDark ? '#21252b' : '#ffffff', 
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    border: `1px solid ${isDark ? '#3e4451' : '#e4e4e7'}`, 
+                    boxShadow: isDark ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0,0,0,0.05)',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    fontSize: '11px', 
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'all',
+                    zIndex: 20
+                }}>
+                    <span style={{ color: sourceColor }}>{sourceLabel}</span>
+                    <span style={{ 
+                        color: isDark ? '#ffffff' : '#000000', 
+                        margin: '0 6px',
+                        fontWeight: 800,
+                        opacity: 0.5
+                    }}>—</span>
+                    <span style={{ color: targetColor }}>{targetLabel}</span>
+                </div>
+              ),
+              // Clear default styling to avoid conflicts
               labelStyle: undefined,
               labelBgStyle: undefined,
               
@@ -355,8 +352,34 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                         id: edgeId,
                         source: entity.name,
                         target: targetName,
-                        // Initial label creation
-                        label: createEdgeLabel(sourceLabel, targetLabel, sourceColor, targetColor, isDark),
+                        // Inline JSX for Initial Label
+                        label: (
+                            <div className="nodrag nopan" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: isDark ? '#21252b' : '#ffffff', 
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                border: `1px solid ${isDark ? '#3e4451' : '#e4e4e7'}`, 
+                                boxShadow: isDark ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0,0,0,0.05)',
+                                fontFamily: 'system-ui, -apple-system, sans-serif',
+                                fontSize: '11px', 
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap',
+                                pointerEvents: 'all',
+                                zIndex: 20
+                            }}>
+                                <span style={{ color: sourceColor }}>{sourceLabel}</span>
+                                <span style={{ 
+                                    color: isDark ? '#ffffff' : '#000000', 
+                                    margin: '0 6px',
+                                    fontWeight: 800,
+                                    opacity: 0.5
+                                }}>—</span>
+                                <span style={{ color: targetColor }}>{targetLabel}</span>
+                            </div>
+                        ),
                         data: { sourceColor, targetColor, gradientId, sourceLabel, targetLabel }
                     });
                 }
@@ -431,7 +454,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             markerEnd: { type: MarkerType.ArrowClosed, color: e.data.targetColor },
             animated: false,
             style: { stroke: `url(#${e.data.gradientId})`, strokeWidth: 6, opacity: isDark ? 0.8 : 1 }, 
-            label: e.label, // Use pre-created JSX label
+            label: e.label, 
             data: e.data
         }));
 
@@ -533,9 +556,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               },
               markerStart: { type: MarkerType.ArrowClosed, color: startMarkerColor },
               markerEnd: { type: MarkerType.ArrowClosed, color: markerColor },
-              // IMPORTANT: When highlighting, we keep the custom label but might want to dim it if not visible
-              // ReactFlow handles label visibility based on edge opacity usually, or we can conditional render it
-              // For now, let's keep the label as is, since edge opacity handles the "dimming" effect
           };
       }));
   }, [highlightedIds, setNodes, setEdges, isDark]);
