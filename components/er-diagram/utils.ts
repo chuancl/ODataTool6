@@ -86,13 +86,14 @@ export const getEntityTheme = (index: number, isDark: boolean = false) => {
 };
 
 /**
- * 图着色算法 (Greedy Coloring)
- * 为每个实体分配一个颜色索引，尽力保证相邻实体颜色不同
+ * 图着色算法 (Greedy Coloring with Global Usage Balancing)
+ * 为每个实体分配一个颜色索引，尽力保证相邻实体颜色不同，且颜色分布尽可能均匀
  */
 export const computeGraphColoring = (entities: EntityType[], isDark: boolean): Record<string, number> => {
     const paletteLength = isDark ? PALETTE_DARK_LEN : PALETTE_LIGHT_LEN;
     const colors: Record<string, number> = {};
     const adj: Record<string, Set<string>> = {};
+    const globalUsage = new Array(paletteLength).fill(0); // 记录每种颜色的全局使用次数
 
     // 1. 构建邻接表
     entities.forEach(e => {
@@ -104,7 +105,7 @@ export const computeGraphColoring = (entities: EntityType[], isDark: boolean): R
                 target = target.split('.').pop();
                 if (target && target !== e.name) { // 忽略自引用
                     adj[e.name].add(target);
-                    // 无向图视角：同时也记录反向关系，确保双方都知道对方
+                    // 无向图视角：同时也记录反向关系
                     if (!adj[target]) adj[target] = new Set();
                     adj[target].add(e.name);
                 }
@@ -114,7 +115,6 @@ export const computeGraphColoring = (entities: EntityType[], isDark: boolean): R
 
     // 2. 贪婪着色
     // 为了结果确定性，先按度数(连接数)降序排序，度数相同按名称排序
-    // (度数高的节点先着色通常效果更好)
     const sortedEntities = [...entities].sort((a, b) => {
         const degreeA = adj[a.name]?.size || 0;
         const degreeB = adj[b.name]?.size || 0;
@@ -130,38 +130,53 @@ export const computeGraphColoring = (entities: EntityType[], isDark: boolean): R
             }
         });
 
-        // 寻找第一个未被邻居使用的颜色索引 (0..paletteLength-1)
-        let chosenColor = -1;
+        // 寻找所有未被邻居使用的合法颜色索引
+        const validColors: number[] = [];
         for (let i = 0; i < paletteLength; i++) {
             if (!neighborColors.has(i)) {
-                chosenColor = i;
-                break;
+                validColors.push(i);
             }
         }
 
-        // 如果所有颜色都被邻居占用了 (冲突不可避免)
-        if (chosenColor === -1) {
-            // 策略：选择被邻居使用次数最少的颜色，以减少视觉混淆
-            const usageCount = new Array(paletteLength).fill(0);
+        let chosenColor = -1;
+
+        if (validColors.length > 0) {
+            // 策略优化：在合法颜色中，选择【全局使用次数最少】的颜色
+            // 这能确保颜色多样性，避免算法总是倾向于使用索引靠前的颜色 (0, 1, 2)
+            validColors.sort((a, b) => {
+                const usageDiff = globalUsage[a] - globalUsage[b];
+                if (usageDiff !== 0) return usageDiff;
+                return a - b; // 索引作为 Tie-breaker，保持确定性
+            });
+            chosenColor = validColors[0];
+        } else {
+            // 冲突不可避免：选择被【当前邻居】使用次数最少的颜色，以最小化局部视觉混淆
+            const localUsageCount = new Array(paletteLength).fill(0);
             (adj[e.name] || []).forEach(neighborName => {
                 if (colors[neighborName] !== undefined) {
-                    usageCount[colors[neighborName]]++;
+                    localUsageCount[colors[neighborName]]++;
                 }
             });
             
-            // 找到使用次数最少的索引
-            let minUsage = Infinity;
-            let minIndex = 0;
+            let minLocalUsage = Infinity;
+            // 默认选第一个，后续循环优化
+            chosenColor = 0;
+
             for (let i = 0; i < paletteLength; i++) {
-                if (usageCount[i] < minUsage) {
-                    minUsage = usageCount[i];
-                    minIndex = i;
+                if (localUsageCount[i] < minLocalUsage) {
+                    minLocalUsage = localUsageCount[i];
+                    chosenColor = i;
+                } else if (localUsageCount[i] === minLocalUsage) {
+                    // 如果局部冲突程度相同，优先选全局使用较少的
+                    if (globalUsage[i] < globalUsage[chosenColor]) {
+                        chosenColor = i;
+                    }
                 }
             }
-            chosenColor = minIndex;
         }
 
         colors[e.name] = chosenColor;
+        globalUsage[chosenColor]++;
     });
 
     return colors;
