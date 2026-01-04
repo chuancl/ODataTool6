@@ -186,15 +186,18 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             const fkInfo = getForeignKeyInfo(prop.name);
             const isOpen = activePopoverProp === prop.name;
 
+            // Calculate specific FK color if applicable (always used for Relation link)
+            const fkTargetColor = fkInfo ? getTargetColor(fkInfo.targetEntity) : undefined;
+
             // --- COLOR LOGIC ---
             // 1. Calculate Text Color (Applies to both Dark and Light mode as per requirement)
-            // PK: Matches current entity header color
+            // PK: Matches current entity header color (Priority)
             // FK: Matches target entity header color
             let propTextColor = undefined;
             if (isKey) {
                 propTextColor = theme.header; 
             } else if (fkInfo) {
-                propTextColor = getTargetColor(fkInfo.targetEntity);
+                propTextColor = fkTargetColor;
             }
 
             // Light mode specific property styling
@@ -287,7 +290,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                                           >
                                               <span 
                                                 className="font-bold group-hover/link:underline flex items-center gap-1"
-                                                style={{ color: propTextColor || 'inherit' }}
+                                                style={{ color: fkTargetColor || 'inherit' }}
                                               >
                                                   {fkInfo.targetEntity} 
                                                   <ArrowRightCircle size={10} />
