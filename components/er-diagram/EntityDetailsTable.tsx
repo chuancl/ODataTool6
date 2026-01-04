@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState } from 'react';
 import { EntityProperty } from '@/utils/odata-helper';
 import { Key, Link2, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
@@ -74,11 +75,11 @@ export const EntityDetailsTable = ({
         }),
 
         // 4. Attributes Column
-        columnHelper.accessor(row => `${row.nullable}${row.unicode}${row.fixedLength}${row.concurrencyMode}`, {
+        columnHelper.accessor(row => `${row.nullable}${row.unicode}${row.fixedLength}${row.concurrencyMode}${JSON.stringify(row.customAttributes)}`, {
             id: 'attributes',
             header: 'Attributes',
             enableSorting: false, 
-            size: 180,
+            size: 200,
             cell: info => {
                 const p = info.row.original;
                 return (
@@ -104,6 +105,36 @@ export const EntityDetailsTable = ({
                         {p.concurrencyMode === 'Fixed' && (
                             <span title="Optimistic Concurrency Control" className={`px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border ${isDark ? "bg-[#98c379]/10 text-[#98c379] border-[#98c379]/20" : "bg-success/10 text-success-700 border-success/20"}`}>Concurrency</span>
                         )}
+
+                        {/* Custom Attributes (e.g. p6:StoreGeneratedPattern) */}
+                        {p.customAttributes && Object.entries(p.customAttributes).map(([key, val]) => {
+                            const cleanKey = key.includes(':') ? key.split(':')[1] : key;
+                            
+                            // Special display for Identity/Computed
+                            if (cleanKey === 'StoreGeneratedPattern') {
+                                if (val === 'Identity') {
+                                    return (
+                                        <span key={key} title={`${key}="${val}"`} className={`px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border ${isDark ? "bg-[#e5c07b]/10 text-[#e5c07b] border-[#e5c07b]/20" : "bg-warning/10 text-warning-700 border-warning/20"}`}>
+                                            Identity
+                                        </span>
+                                    );
+                                }
+                                if (val === 'Computed') {
+                                    return (
+                                        <span key={key} title={`${key}="${val}"`} className={`px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border ${isDark ? "bg-[#61afef]/10 text-[#61afef] border-[#61afef]/20" : "bg-primary/10 text-primary-700 border-primary/20"}`}>
+                                            Computed
+                                        </span>
+                                    );
+                                }
+                            }
+
+                            // Generic Display for other custom attributes
+                            return (
+                                <span key={key} title={`${key}="${val}"`} className={`px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border max-w-[120px] truncate ${isDark ? "bg-[#c678dd]/10 text-[#c678dd] border-[#c678dd]/20" : "bg-purple-100 text-purple-700 border-purple-200"}`}>
+                                    {cleanKey}={val}
+                                </span>
+                            );
+                        })}
                     </div>
                 );
             }

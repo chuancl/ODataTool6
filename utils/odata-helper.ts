@@ -1,4 +1,5 @@
 
+
 export type ODataVersion = 'V2' | 'V3' | 'V4' | 'Unknown';
 
 export interface EntityProperty {
@@ -12,6 +13,7 @@ export interface EntityProperty {
   unicode?: boolean;
   defaultValue?: string;
   concurrencyMode?: string;
+  customAttributes?: Record<string, string>; // Capture custom namespace attributes (e.g. p6:StoreGeneratedPattern)
 }
 
 export interface EntityType {
@@ -80,19 +82,50 @@ export const detectODataVersion = async (urlOrXml: string, isXmlContent: boolean
 const parseProperties = (element: Element): EntityProperty[] => {
     const properties: EntityProperty[] = [];
     const props = element.getElementsByTagName("Property");
+    
+    // List of standard OData Property attributes to exclude from customAttributes
+    const STANDARD_ATTRS = new Set([
+        'Name', 'Type', 'Nullable', 'MaxLength', 'FixedLength', 
+        'Precision', 'Scale', 'Unicode', 'DefaultValue', 'ConcurrencyMode'
+    ]);
+
     for (let p = 0; p < props.length; p++) {
         const propNode = props[p];
+        const customAttributes: Record<string, string> = {};
+
+        // Parse standard attributes
+        const name = propNode.getAttribute("Name") || "";
+        const type = propNode.getAttribute("Type") || "";
+        const nullable = propNode.getAttribute("Nullable") !== "false";
+        const maxLength = propNode.getAttribute("MaxLength") ? parseInt(propNode.getAttribute("MaxLength")!) : undefined;
+        const fixedLength = propNode.getAttribute("FixedLength") === "true";
+        const precision = propNode.getAttribute("Precision") ? parseInt(propNode.getAttribute("Precision")!) : undefined;
+        const scale = propNode.getAttribute("Scale") ? parseInt(propNode.getAttribute("Scale")!) : undefined;
+        const unicode = propNode.getAttribute("Unicode") !== "false";
+        const defaultValue = propNode.getAttribute("DefaultValue") || undefined;
+        const concurrencyMode = propNode.getAttribute("ConcurrencyMode") || undefined;
+
+        // Parse custom attributes (e.g. p6:StoreGeneratedPattern)
+        for (let i = 0; i < propNode.attributes.length; i++) {
+            const attr = propNode.attributes[i];
+            // Skip standard attributes and XML namespace declarations
+            if (!STANDARD_ATTRS.has(attr.name) && !attr.name.startsWith('xmlns')) {
+                customAttributes[attr.name] = attr.value;
+            }
+        }
+
         properties.push({
-            name: propNode.getAttribute("Name") || "",
-            type: propNode.getAttribute("Type") || "",
-            nullable: propNode.getAttribute("Nullable") !== "false",
-            maxLength: propNode.getAttribute("MaxLength") ? parseInt(propNode.getAttribute("MaxLength")!) : undefined,
-            fixedLength: propNode.getAttribute("FixedLength") === "true",
-            precision: propNode.getAttribute("Precision") ? parseInt(propNode.getAttribute("Precision")!) : undefined,
-            scale: propNode.getAttribute("Scale") ? parseInt(propNode.getAttribute("Scale")!) : undefined,
-            unicode: propNode.getAttribute("Unicode") !== "false",
-            defaultValue: propNode.getAttribute("DefaultValue") || undefined,
-            concurrencyMode: propNode.getAttribute("ConcurrencyMode") || undefined
+            name,
+            type,
+            nullable,
+            maxLength,
+            fixedLength,
+            precision,
+            scale,
+            unicode,
+            defaultValue,
+            concurrencyMode,
+            customAttributes: Object.keys(customAttributes).length > 0 ? customAttributes : undefined
         });
     }
     return properties;
