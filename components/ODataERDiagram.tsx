@@ -585,49 +585,64 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
       {/* Controls Overlay (Top Right) */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
-        {/* Toggle View Box: Blue Background, Green Switch */}
-        <div className="flex items-center gap-2 p-1.5 px-3 rounded-lg border border-transparent shadow-sm bg-primary text-white">
+        {/* Toggle View Box: Dark mode uses One Dark Pro palette */}
+        <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border shadow-sm transition-colors ${
+            isDark 
+            ? "bg-[#2c313a] border-[#3e4451] text-[#abb2bf]" 
+            : "bg-primary border-transparent text-white"
+        }`}>
             <span className="text-xs font-medium flex items-center gap-1">
-                {showXml ? <Network size={14} className="text-white"/> : <FileCode size={14} className="text-white/80" />}
+                {showXml 
+                    ? <Network size={14} className={isDark ? "text-[#61afef]" : "text-white"}/> 
+                    : <FileCode size={14} className={isDark ? "text-[#abb2bf]" : "text-white/80"} />
+                }
                 {showXml ? "显示ER图" : "显示原始文件"}
             </span>
             <Switch 
                 size="sm" 
-                color="success" // Changed from secondary (purple) to success (green)
+                color="success" 
                 isSelected={showXml} 
                 onValueChange={setShowXml} 
                 aria-label="Toggle View"
                 classNames={{
-                    wrapper: "bg-default/40 group-data-[selected=true]:bg-success" 
+                    wrapper: isDark ? "bg-[#3e4451] group-data-[selected=true]:bg-[#98c379]" : "bg-default/40 group-data-[selected=true]:bg-success" 
                 }}
             />
         </div>
 
         {!showXml && (
             <>
-                {/* Performance Mode Box: Blue Background, Warning/Orange Switch */}
-                <div className="flex items-center gap-2 p-1.5 px-3 rounded-lg border border-transparent shadow-sm bg-primary text-white">
+                {/* Performance Mode Box */}
+                <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border shadow-sm transition-colors ${
+                    isDark 
+                    ? "bg-[#2c313a] border-[#3e4451] text-[#abb2bf]" 
+                    : "bg-primary border-transparent text-white"
+                }`}>
                     <span className="text-xs font-medium flex items-center gap-1">
-                        <Zap size={14} className={isPerformanceMode ? "text-yellow-300" : "text-white/70"} fill={isPerformanceMode ? "currentColor" : "none"} />
+                        <Zap 
+                            size={14} 
+                            className={isPerformanceMode ? (isDark ? "text-[#e5c07b]" : "text-yellow-300") : (isDark ? "text-[#5c6370]" : "text-white/70")} 
+                            fill={isPerformanceMode ? "currentColor" : "none"} 
+                        />
                         性能模式
                     </span>
                     <Switch 
                         size="sm" 
-                        color="warning" // Orange switch on blue
+                        color="warning" 
                         isSelected={isPerformanceMode} 
                         onValueChange={setIsPerformanceMode} 
                         aria-label="性能模式"
                         classNames={{
-                            wrapper: "bg-default/40 group-data-[selected=true]:bg-warning"
+                            wrapper: isDark ? "bg-[#3e4451] group-data-[selected=true]:bg-[#e5c07b]" : "bg-default/40 group-data-[selected=true]:bg-warning"
                         }}
                     />
                 </div>
-                {/* Reset View Button - Solid Style (Blue) */}
+                {/* Reset View Button */}
                 <Button 
                     size="sm" 
-                    color="primary" 
-                    variant="solid" 
-                    className="shadow-sm font-medium"
+                    color={isDark ? "default" : "primary"}
+                    variant={isDark ? "flat" : "solid"}
+                    className={`shadow-sm font-medium ${isDark ? "bg-[#2c313a] border border-[#3e4451] text-[#61afef] hover:bg-[#3e4451] hover:text-white" : ""}`}
                     onPress={resetView}
                 >
                     重置视图
