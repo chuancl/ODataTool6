@@ -125,7 +125,8 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
     : { className: `text-white border-b border-black/10`, style: { backgroundColor: theme.header } };
 
   return (
-    <div className="relative group" style={{ zIndex: showEntityDetails ? 2000 : undefined }}>
+    // REMOVED hardcoded zIndex here. Z-Index is now fully controlled by the ReactFlow Node Wrapper
+    <div className="relative group">
       {/* --- Main Node Card --- */}
       <div 
         className={`

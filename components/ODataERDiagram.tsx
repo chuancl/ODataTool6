@@ -87,6 +87,10 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   const [showXml, setShowXml] = useState(false); // New: Toggle Raw XML View
   const [activeEntityIds, setActiveEntityIds] = useState<string[]>([]); // Global Active Entity IDs for Popovers
   const [isProcessingLayout, setIsProcessingLayout] = useState(false);
+  
+  // Z-Index Management
+  // Start high enough to be above normal nodes (usually 0-10) and edges (10)
+  const [globalMaxZIndex, setGlobalMaxZIndex] = useState(3000);
 
   // React Flow Hooks
   const { fitView } = useReactFlow();
@@ -111,23 +115,56 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   }, [xmlContent]);
 
   // Context Helpers
+  // Modified: Clicking an entity brings it to the absolute front by incrementing globalMaxZIndex
   const addActiveEntity = useCallback((id: string) => {
+    // 1. Update Active List (Logic for showing details panel)
     setActiveEntityIds(prev => {
         const others = prev.filter(e => e !== id);
         return [...others, id];
     });
-  }, []);
+
+    // 2. Update Z-Index (Logic for bringing to front)
+    setGlobalMaxZIndex(prevMax => {
+        const newMax = prevMax + 1;
+        setNodes((nds) => nds.map(n => {
+            if (n.id === id) {
+                return { ...n, zIndex: newMax };
+            }
+            return n;
+        }));
+        return newMax;
+    });
+  }, [setNodes]);
 
   const removeActiveEntity = useCallback((id: string) => {
     setActiveEntityIds(prev => prev.filter(e => e !== id));
-  }, []);
+    // Reset z-index for closed node? Optional, but keeping it high doesn't hurt much.
+    // We can reset it to 0 to be clean.
+    setNodes((nds) => nds.map(n => {
+        if (n.id === id) {
+            return { ...n, zIndex: 0 };
+        }
+        return n;
+    }));
+  }, [setNodes]);
 
   const switchActiveEntity = useCallback((fromId: string, toId: string) => {
     setActiveEntityIds(prev => {
         const others = prev.filter(e => e !== fromId && e !== toId);
         return [...others, toId];
     });
-  }, []);
+    // Bring 'toId' to front
+    setGlobalMaxZIndex(prevMax => {
+        const newMax = prevMax + 1;
+        setNodes((nds) => nds.map(n => {
+            if (n.id === toId) {
+                return { ...n, zIndex: newMax };
+            }
+            return n;
+        }));
+        return newMax;
+    });
+  }, [setNodes]);
 
   // 用于管理高亮节点 ID 的集合
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
@@ -528,17 +565,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           };
       }));
   }, [highlightedIds, setNodes, setEdges, isDark]);
-
-  useEffect(() => {
-    setNodes((nds) => nds.map(n => {
-        const activeIndex = activeEntityIds.indexOf(n.id);
-        const targetZIndex = activeIndex !== -1 ? 1000 + activeIndex : 0;
-        if (n.zIndex !== targetZIndex) {
-            return { ...n, zIndex: targetZIndex };
-        }
-        return n;
-    }));
-  }, [activeEntityIds, setNodes]);
 
   const resetView = useCallback(async () => {
      setHighlightedIds(new Set());
