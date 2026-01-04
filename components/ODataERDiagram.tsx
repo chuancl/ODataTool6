@@ -215,7 +215,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           // Generate deterministic safe ID for gradient
           const gradientId = `grad_${sourceName.replace(/\W/g,'')}_${targetName.replace(/\W/g,'')}_${edge.id.replace(/\W/g,'')}`;
 
-          const strokeWidth = isDark ? 2 : 3;
+          const strokeWidth = 6; // Modified: Increased to 6px as requested
           const opacity = isDark ? 0.8 : 1;
           
           const sourceLabel = edge.data?.sourceLabel || edge.source;
@@ -455,7 +455,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             markerStart: { type: MarkerType.ArrowClosed, color: e.data.sourceColor },
             markerEnd: { type: MarkerType.ArrowClosed, color: e.data.targetColor },
             animated: false,
-            style: { stroke: `url(#${e.data.gradientId})`, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 },
+            style: { stroke: `url(#${e.data.gradientId})`, strokeWidth: 6, opacity: isDark ? 0.8 : 1 }, // Modified: 6px width
             label: e.label,
             labelStyle: { fill: e.data.sourceColor, fontWeight: isDark ? 400 : 700, fontSize: 10 },
             labelBgStyle: { fill: isDark ? '#ffffff' : '#f4f4f5', fillOpacity: 0.8, rx: 4, ry: 4 },
@@ -519,7 +519,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             return {
               ...e, 
               animated: false, 
-              style: { stroke: gradientStroke, strokeWidth: isDark ? 2 : 3, opacity: isDark ? 0.8 : 1 }, 
+              style: { stroke: gradientStroke, strokeWidth: 6, opacity: isDark ? 0.8 : 1 }, // Modified: 6px width
               markerStart: { type: MarkerType.ArrowClosed, color: sourceColor },
               markerEnd: { type: MarkerType.ArrowClosed, color: targetColor },
               zIndex: 0
@@ -558,7 +558,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               style: { 
                   ...e.style, 
                   stroke: stroke,
-                  strokeWidth: isVisible ? 4 : 1, 
+                  strokeWidth: isVisible ? 6 : 1, // Modified: 6px width for visible edges
                   opacity: isVisible ? 1 : 0.1, 
                   zIndex: isVisible ? 10 : 0
               },
