@@ -102,8 +102,9 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
   const hiddenCount = data.properties.length - 12;
 
   // --- Dynamic Styles based on Theme ---
+  // Dark Mode: Use specific One Dark Pro colors (#282c34 BG, #3e4451 Border)
   const containerStyle = isDark 
-    ? `bg-content1 border-divider shadow-sm rounded-lg border-2`
+    ? `bg-[#282c34] border-[#3e4451] shadow-lg rounded-lg border`
     : `border-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)] rounded-lg overflow-hidden`; 
 
   // In light mode, apply coordinated body color (Light) and border (Dark)
@@ -112,14 +113,14 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
     : {};
 
   const selectedStyle = isDark 
-    ? `border-primary shadow-2xl ring-2 ring-primary/30`
+    ? `ring-2 ring-primary/50 shadow-xl`
     : `ring-2 ring-black scale-[1.02] transition-transform shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)]`;
 
   // Header: Use Theme Color in both modes for consistency
   // Dark Mode: Text is Theme Color, BG is faint Theme Color
   // Light Mode: Text is White, BG is Theme Color
   const headerStyle = isDark 
-    ? { className: `border-b border-divider`, style: { color: theme.header, backgroundColor: `${theme.header}15` } }
+    ? { className: `border-b border-[#3e4451]`, style: { color: theme.header, backgroundColor: `${theme.header}10` } }
     : { className: `text-white border-b border-black/10`, style: { backgroundColor: theme.header } };
 
   return (
@@ -165,7 +166,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
         </div>
 
         {/* --- Entity Content Area --- */}
-        <div className={`p-2 flex flex-col gap-0.5 ${isDark ? 'bg-content1' : 'bg-transparent'}`}>
+        <div className={`p-2 flex flex-col gap-0.5 ${isDark ? 'bg-transparent' : 'bg-transparent'}`}>
           {/* Properties */}
           {visibleProperties.map((prop: EntityProperty) => {
             const fieldColor = data.fieldColors?.[prop.name];
@@ -197,7 +198,8 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             let rowStyle: React.CSSProperties = {};
             
             if (isDark) {
-                propContainerClass += isKey ? 'font-semibold ' : 'text-default-600 ';
+                // One Dark Pro: Default text #abb2bf
+                propContainerClass += isKey ? 'font-semibold ' : 'text-[#abb2bf] ';
                 // Dynamic background for PK/FK to match text color faintly
                 if (isKey) {
                     rowStyle.backgroundColor = `${theme.header}10`; // Very faint background
@@ -205,7 +207,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                     propContainerClass += 'border-transparent';
                 }
                 
-                metaClass = "text-default-400 opacity-70";
+                metaClass = "text-[#5c6370]"; // One Dark Pro Comment Color for Type
             } else {
                 // Light Mode
                 propContainerClass += "border-transparent hover:bg-black/5 "; 
@@ -214,7 +216,8 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             }
 
             // Override text color if we have a specific propTextColor (PK or FK)
-            const finalTextColor = propTextColor || (isLightMode ? theme.text : undefined);
+            // For Dark mode, use propTextColor if available (accents), else default grey (#abb2bf)
+            const finalTextColor = propTextColor || (isLightMode ? theme.text : '#abb2bf');
             
             // Apply field highlight color if exists (e.g. from hovering lines)
             if (fieldColor) {
@@ -289,7 +292,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
           {/* Expand/Collapse */}
           {!isExpanded && hiddenCount > 0 && (
               <div 
-                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 border border-dashed ${isDark ? "text-primary hover:bg-primary/5 hover:border-primary/50 border-divider" : "hover:bg-black/5 border-black/20"}`}
+                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 border border-dashed ${isDark ? "text-primary hover:bg-primary/5 hover:border-primary/50 border-[#3e4451]" : "hover:bg-black/5 border-black/20"}`}
                   style={isLightMode ? { color: theme.header, borderColor: theme.header } : {}}
                   onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
               >
@@ -299,7 +302,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
           )}
           {isExpanded && hiddenCount > 0 && (
               <div 
-                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 ${isDark ? "text-default-400 hover:bg-black/5" : "hover:bg-black/5"}`}
+                  className={`text-[9px] cursor-pointer p-1 rounded text-center flex items-center justify-center gap-1 transition-colors mt-1 ${isDark ? "text-[#5c6370] hover:bg-white/5" : "hover:bg-black/5"}`}
                   style={isLightMode ? { color: theme.text } : {}}
                   onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
               >
@@ -310,16 +313,16 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
           {/* Navigation Properties */}
           {data.navigationProperties && data.navigationProperties.length > 0 && (
-              <div className={`mt-2 pt-2 ${isDark ? "border-t border-divider/50" : "border-t border-black/5"}`}>
+              <div className={`mt-2 pt-2 ${isDark ? "border-t border-[#3e4451]" : "border-t border-black/5"}`}>
                   <div 
-                    className={`text-[9px] font-bold mb-1.5 px-1 uppercase tracking-wider flex items-center gap-2 ${isDark ? "text-default-500" : ""}`}
+                    className={`text-[9px] font-bold mb-1.5 px-1 uppercase tracking-wider flex items-center gap-2 ${isDark ? "text-[#5c6370]" : ""}`}
                     style={isLightMode ? { color: theme.text, opacity: 0.8 } : {}}
                   >
                       <span>Navigation</span>
-                      <div className={`h-px flex-1 ${isDark ? "bg-divider" : "bg-black/10"}`}></div>
+                      <div className={`h-px flex-1 ${isDark ? "bg-[#3e4451]" : "bg-black/10"}`}></div>
                   </div>
                   <div 
-                    className={`rounded-md p-1 flex flex-col gap-1 ${isDark ? 'bg-secondary/10 border border-secondary/10' : 'bg-transparent border border-black/5'}`}
+                    className={`rounded-md p-1 flex flex-col gap-1 ${isDark ? 'bg-[#21252b]/50 border border-[#3e4451]' : 'bg-transparent border border-black/5'}`}
                     style={isLightMode ? { backgroundColor: theme.nav } : {}}
                   >
                       {data.navigationProperties.slice(0, 8).map((nav: any) => {
@@ -333,7 +336,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                           return (
                               <div 
                                   key={nav.name} 
-                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-content1 bg-content1/50 border-transparent hover:border-secondary/20" : "hover:bg-white/40 bg-white/20 border border-transparent hover:shadow-sm"}`}
+                                  className={`group flex items-center justify-start gap-2 p-1.5 rounded-sm transition-all cursor-pointer ${isDark ? "hover:bg-[#2c313a] bg-transparent border-transparent" : "hover:bg-white/40 bg-white/20 border border-transparent hover:shadow-sm"}`}
                                   onClick={(e) => { e.stopPropagation(); handleJumpToEntity(cleanType, false); }}
                                   title={`Jump to ${cleanType}`}
                               >
@@ -354,7 +357,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                           );
                       })}
                       {data.navigationProperties.length > 8 && (
-                          <div className={`text-[9px] text-center pt-1 italic ${isDark ? "text-default-400" : ""}`} style={isLightMode ? { color: theme.text, opacity: 0.6 } : {}}>
+                          <div className={`text-[9px] text-center pt-1 italic ${isDark ? "text-[#5c6370]" : ""}`} style={isLightMode ? { color: theme.text, opacity: 0.6 } : {}}>
                               + {data.navigationProperties.length - 8} more relations
                           </div>
                       )}

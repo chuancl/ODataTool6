@@ -21,17 +21,16 @@ const PALETTE_LIGHT = [
   '#3b82f6', // Blue 500
 ];
 
-// Dark Mode Palette (Optimized for Dark BG - Lighter/Fresher shades)
+// Dark Mode Palette (One Dark Pro Syntax Colors)
 const PALETTE_DARK = [
-  '#a78bfa', // Violet 400
-  '#818cf8', // Indigo 400
-  '#60a5fa', // Blue 400
-  '#fbbf24', // Amber 400
-  '#fb923c', // Orange 400
-  '#f87171', // Red 400
-  '#2dd4bf', // Teal 400 (Replaces old Teal #14b8a6)
-  '#4ade80', // Green 400 (Replaces old Lime #84cc16)
-  '#60a5fa', // Blue 400
+  '#61afef', // Blue
+  '#98c379', // Green
+  '#e5c07b', // Yellow
+  '#e06c75', // Red
+  '#c678dd', // Purple
+  '#56b6c2', // Cyan
+  '#d19a66', // Orange
+  '#be5046', // Dark Red
 ];
 
 /**
@@ -72,10 +71,10 @@ export const getEntityTheme = (index: number, isDark: boolean = false) => {
         return {
             header: headerColor,
             // Fallbacks for properties unused in Dark Mode EntityNode logic
-            body: '#000000', 
-            nav: '#000000', 
-            border: '#333333', 
-            text: '#ffffff'
+            body: '#282c34', // One Dark Pro BG
+            nav: '#21252b',  // One Dark Pro Panel BG
+            border: '#3e4451', // One Dark Pro Border
+            text: '#abb2bf' // One Dark Pro Text
         };
     }
 };
