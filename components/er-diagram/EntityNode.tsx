@@ -261,6 +261,29 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                                   <span className={!prop.nullable ? "text-danger font-medium" : "text-default-500"}>
                                       {!prop.nullable ? 'Yes (Not Null)' : 'No (Nullable)'}
                                   </span>
+                                  
+                                  {/* Foreign Key Relation Info */}
+                                  {fkInfo && (
+                                      <>
+                                          <span className="text-default-400">Relation</span>
+                                          <div 
+                                              className="flex items-center gap-1 cursor-pointer group/link w-fit"
+                                              onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleJumpToEntity(fkInfo.targetEntity, false);
+                                                  setActivePopoverProp(null);
+                                              }}
+                                          >
+                                              <span className="font-bold text-secondary group-hover/link:underline flex items-center gap-1">
+                                                  {fkInfo.targetEntity} 
+                                                  <ArrowRightCircle size={10} />
+                                              </span>
+                                              <span className="text-[10px] text-default-400 font-mono">
+                                                  ({fkInfo.targetProperty})
+                                              </span>
+                                          </div>
+                                      </>
+                                  )}
                               </div>
                               <div className="flex flex-wrap gap-2">
                                   {prop.maxLength !== undefined && (
