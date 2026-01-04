@@ -10,7 +10,11 @@ import ReactFlow, {
   Node,
   ReactFlowProvider,
   useReactFlow, 
-  BackgroundVariant 
+  BackgroundVariant,
+  BaseEdge, 
+  getSmoothStepPath, 
+  EdgeLabelRenderer, 
+  EdgeProps 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ELK from 'elkjs/lib/elk.bundled.js';
@@ -33,7 +37,78 @@ import { githubLight } from '@uiw/codemirror-theme-github';
 
 const elk = new ELK();
 
+// --- Custom Edge Component ---
+const RelationshipEdge = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style = {},
+  markerEnd,
+  markerStart,
+  data
+}: EdgeProps) => {
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+    borderRadius: 20,
+  });
+
+  if (!data) return <BaseEdge path={edgePath} markerEnd={markerEnd} markerStart={markerStart} style={style} />;
+
+  const { sourceLabel, targetLabel, sourceColor, targetColor, isDark } = data;
+
+  return (
+    <>
+      <BaseEdge path={edgePath} markerEnd={markerEnd} markerStart={markerStart} style={style} />
+      <EdgeLabelRenderer>
+        <div
+          style={{
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            zIndex: 10,
+            pointerEvents: 'all', 
+          }}
+          className="nodrag nopan"
+        >
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: isDark ? '#21252b' : '#ffffff', 
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: `1px solid ${isDark ? '#3e4451' : '#e4e4e7'}`, 
+                boxShadow: isDark ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0,0,0,0.05)',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontSize: '11px', 
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+            }}>
+                <span style={{ color: sourceColor }}>{sourceLabel}</span>
+                <span style={{ 
+                    color: isDark ? '#ffffff' : '#000000', 
+                    margin: '0 6px',
+                    fontWeight: 800,
+                    opacity: 0.5
+                }}>—</span>
+                <span style={{ color: targetColor }}>{targetLabel}</span>
+            </div>
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+};
+
 const nodeTypes = { entity: EntityNode };
+const edgeTypes = { relationship: RelationshipEdge };
 
 interface Props {
   url: string;
@@ -212,12 +287,9 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           
           const gradientId = `grad_${sourceName.replace(/\W/g,'')}_${targetName.replace(/\W/g,'')}_${edge.id.replace(/\W/g,'')}`;
           
-          // Get stored label text or fallback to IDs
-          const sourceLabel = edge.data?.sourceLabel || sourceName;
-          const targetLabel = edge.data?.targetLabel || targetName;
-
           return {
               ...edge,
+              type: 'relationship', // Ensure custom edge type
               style: { 
                   ...edge.style, 
                   stroke: `url(#${gradientId})`, 
@@ -227,40 +299,14 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               markerStart: (typeof edge.markerStart === 'object' && edge.markerStart) ? { ...edge.markerStart, color: sourceColor } : edge.markerStart,
               markerEnd: (typeof edge.markerEnd === 'object' && edge.markerEnd) ? { ...edge.markerEnd, color: targetColor } : edge.markerEnd,
               
-              // --- Custom JSX Label ---
-              // Using inline JSX to ensure React Flow renders it correctly
-              label: (
-                <div className="nodrag nopan" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: isDark ? '#21252b' : '#ffffff', 
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    border: `1px solid ${isDark ? '#3e4451' : '#e4e4e7'}`, 
-                    boxShadow: isDark ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0,0,0,0.05)',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    fontSize: '11px', 
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    pointerEvents: 'all',
-                    zIndex: 20
-                }}>
-                    <span style={{ color: sourceColor }}>{sourceLabel}</span>
-                    <span style={{ 
-                        color: isDark ? '#ffffff' : '#000000', 
-                        margin: '0 6px',
-                        fontWeight: 800,
-                        opacity: 0.5
-                    }}>—</span>
-                    <span style={{ color: targetColor }}>{targetLabel}</span>
-                </div>
-              ),
-              // Clear default styling to avoid conflicts
-              labelStyle: undefined,
-              labelBgStyle: undefined,
-              
-              data: { ...edge.data, sourceColor, targetColor, gradientId }
+              // No 'label' prop here; data is passed to custom edge
+              data: { 
+                  ...edge.data, 
+                  sourceColor, 
+                  targetColor, 
+                  gradientId,
+                  isDark // Pass theme state to edge
+              }
           };
       }));
   }, [isDark, setNodes, setEdges, schema]);
@@ -352,35 +398,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                         id: edgeId,
                         source: entity.name,
                         target: targetName,
-                        // Inline JSX for Initial Label
-                        label: (
-                            <div className="nodrag nopan" style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: isDark ? '#21252b' : '#ffffff', 
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                border: `1px solid ${isDark ? '#3e4451' : '#e4e4e7'}`, 
-                                boxShadow: isDark ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0,0,0,0.05)',
-                                fontFamily: 'system-ui, -apple-system, sans-serif',
-                                fontSize: '11px', 
-                                fontWeight: 700,
-                                whiteSpace: 'nowrap',
-                                pointerEvents: 'all',
-                                zIndex: 20
-                            }}>
-                                <span style={{ color: sourceColor }}>{sourceLabel}</span>
-                                <span style={{ 
-                                    color: isDark ? '#ffffff' : '#000000', 
-                                    margin: '0 6px',
-                                    fontWeight: 800,
-                                    opacity: 0.5
-                                }}>—</span>
-                                <span style={{ color: targetColor }}>{targetLabel}</span>
-                            </div>
-                        ),
-                        data: { sourceColor, targetColor, gradientId, sourceLabel, targetLabel }
+                        // No label prop, handled by custom edge
+                        data: { sourceColor, targetColor, gradientId, sourceLabel, targetLabel, isDark }
                     });
                 }
             }
@@ -448,13 +467,12 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             target: e.target,
             sourceHandle: undefined, 
             targetHandle: undefined, 
-            type: 'smoothstep', 
+            type: 'relationship', // Use custom edge type
             pathOptions: { borderRadius: 20 },
             markerStart: { type: MarkerType.ArrowClosed, color: e.data.sourceColor },
             markerEnd: { type: MarkerType.ArrowClosed, color: e.data.targetColor },
             animated: false,
             style: { stroke: `url(#${e.data.gradientId})`, strokeWidth: 6, opacity: isDark ? 0.8 : 1 }, 
-            label: e.label, 
             data: e.data
         }));
 
@@ -711,6 +729,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                 onNodeDrag={onNodeDrag}
                 onNodeDragStop={onNodeDragStop}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 fitView
