@@ -374,15 +374,20 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             onMouseDown={() => addActiveEntity(id)}
             onClick={(e) => e.stopPropagation()}
         >
-            <div className={`bg-content1 rounded-lg border border-divider overflow-hidden flex flex-col max-h-[600px] ${isDark ? 'shadow-2xl ring-1 ring-black/5' : 'shadow-[8px_8px_0px_0px_rgba(0,0,0,0.15)] border-2'}`} style={isLightMode ? { borderColor: theme.header } : {}}>
+            {/* Popover Container: Dark Mode uses One Dark Pro bg colors */}
+            <div 
+                className={`rounded-lg overflow-hidden flex flex-col max-h-[600px] border ${isDark ? 'bg-[#282c34] border-[#3e4451] shadow-2xl ring-1 ring-black/10' : 'bg-content1 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.15)] border-2'}`} 
+                style={isLightMode ? { borderColor: theme.header } : {}}
+            >
+                {/* Header */}
                 <div 
-                    className={`flex justify-between items-center p-3 border-b border-divider shrink-0 ${isDark ? 'bg-default-100' : 'text-white'}`}
+                    className={`flex justify-between items-center p-3 border-b shrink-0 ${isDark ? 'bg-[#21252b] border-[#3e4451] text-[#abb2bf]' : 'text-white border-divider'}`}
                     style={isLightMode ? { backgroundColor: theme.header, borderColor: theme.header } : {}}
                 >
                     <div className="flex items-center gap-3 font-bold text-sm text-inherit">
-                        <Database size={18} className={isDark ? "text-primary" : "text-white"} />
+                        <Database size={18} className={isDark ? "text-[#61afef]" : "text-white"} />
                         {data.label}
-                        <span className={`text-xs font-normal px-1.5 rounded border ${isDark ? "text-default-500 bg-white border-divider" : "text-white/80 bg-white/20 border-white/30"}`}>{data.namespace}</span>
+                        <span className={`text-xs font-normal px-1.5 rounded border ${isDark ? "text-[#5c6370] bg-[#282c34] border-[#3e4451]" : "text-white/80 bg-white/20 border-white/30"}`}>{data.namespace}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button size="sm" variant={isDark ? "flat" : "solid"} className={isLightMode ? "bg-white/20 text-white hover:bg-white/30" : ""} color="primary" onPress={handleExportCSV} startContent={<Download size={14} />}>
@@ -395,7 +400,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                 </div>
                 
                 <ScrollShadow 
-                    className={`flex-1 overflow-auto ${isDark ? "bg-content1" : ""}`} 
+                    className={`flex-1 overflow-auto ${isDark ? "bg-[#282c34]" : "bg-content1"}`} 
                     style={isLightMode ? { backgroundColor: theme.body } : {}}
                     size={10}
                 >
@@ -407,11 +412,12 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                             onFocus={() => addActiveEntity(id)} 
                             themeBody={isLightMode ? theme.body : undefined}
                             themeNav={isLightMode ? theme.nav : undefined}
+                            isDark={isDark} // Pass Dark Mode flag
                         />
                 </ScrollShadow>
                 
                 <div 
-                    className={`bg-default-50 p-2 text-xs text-default-500 text-center border-t border-divider shrink-0 flex justify-between px-4 ${isLightMode ? '' : ''}`}
+                    className={`p-2 text-xs text-center border-t shrink-0 flex justify-between px-4 ${isDark ? 'bg-[#21252b] border-[#3e4451] text-[#5c6370]' : 'bg-default-50 text-default-500 border-divider'}`}
                     style={isLightMode ? { backgroundColor: theme.nav, color: theme.text, borderColor: theme.border } : {}}
                 >
                     <span>{data.properties.length} Properties</span>
