@@ -257,7 +257,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           data: { 
               ...node.data, 
               isDark,
-              colorIndex: colorMap[node.id] // Inject optimized color index
+              colorIndex: colorMap[node.id], // Inject optimized color index
+              globalColorMap: colorMap // Pass global map for correct foreign key coloring
           }
       })));
 
@@ -465,7 +466,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             fieldColors: fieldColorMap[e.name] || {},
             dynamicHandles: [],
             isDark: isDark,
-            colorIndex: colorMap[e.name] // Inject computed color index
+            colorIndex: colorMap[e.name], // Inject computed color index
+            globalColorMap: colorMap // Inject color map
           },
           position: { x: 0, y: 0 }
         }));

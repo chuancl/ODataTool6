@@ -32,6 +32,16 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
   // Use graph-colored index if available, otherwise fallback to hash
   const colorIndex = data.colorIndex !== undefined ? data.colorIndex : Math.abs(generateHashCode(id));
   const theme = getEntityTheme(colorIndex, isDark); 
+  const globalColorMap = data.globalColorMap; // Retrieve global color map
+
+  // Helper to get consistent target color
+  const getTargetColor = (targetEntity: string) => {
+      let idx = globalColorMap?.[targetEntity];
+      if (idx === undefined) {
+          idx = Math.abs(generateHashCode(targetEntity));
+      }
+      return getEntityTheme(idx, isDark).header;
+  };
 
   // 监听 Handles 变化
   const dynamicHandles: DynamicHandleConfig[] = data.dynamicHandles || [];
@@ -184,8 +194,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
             if (isKey) {
                 propTextColor = theme.header; 
             } else if (fkInfo) {
-                const fkHashCode = Math.abs(generateHashCode(fkInfo.targetEntity));
-                propTextColor = getEntityTheme(fkHashCode, isDark).header;
+                propTextColor = getTargetColor(fkInfo.targetEntity);
             }
 
             // Light mode specific property styling
@@ -351,11 +360,8 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                       {data.navigationProperties.slice(0, 8).map((nav: any) => {
                           const cleanType = nav.targetType?.replace('Collection(', '').replace(')', '').split('.').pop() || '';
                           
-                          // Calculate target entity color for Nav Item
-                          // Fallback to hash for simplicity in list
-                          const targetHashCode = Math.abs(generateHashCode(cleanType));
-                          const targetTheme = getEntityTheme(targetHashCode, isDark); // Changed: Pass isDark
-                          const targetColor = targetTheme.header;
+                          // Use global map to get correct target color
+                          const targetColor = getTargetColor(cleanType);
 
                           return (
                               <div 
@@ -454,6 +460,7 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                             themeNav={isLightMode ? theme.nav : undefined}
                             isDark={isDark} // Pass Dark Mode flag
                             entityColorIndex={colorIndex} // Pass color index to table
+                            globalColorMap={globalColorMap} // Pass global map
                         />
                 </ScrollShadow>
                 

@@ -13,8 +13,9 @@ export const EntityDetailsTable = ({
     onFocus,
     themeBody,
     themeNav,
-    isDark = false, // Add isDark prop
-    entityColorIndex = 0 // New prop for consistent coloring
+    isDark = false, 
+    entityColorIndex = 0,
+    globalColorMap 
 }: { 
     properties: EntityProperty[], 
     keys: string[], 
@@ -24,7 +25,8 @@ export const EntityDetailsTable = ({
     themeBody?: string,
     themeNav?: string,
     isDark?: boolean,
-    entityColorIndex?: number
+    entityColorIndex?: number,
+    globalColorMap?: Record<string, number>
 }) => {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(['name', 'type', 'size', 'attributes', 'defaultValue', 'relation']);
@@ -34,6 +36,15 @@ export const EntityDetailsTable = ({
 
     // Pre-calculate current entity theme
     const currentTheme = useMemo(() => getEntityTheme(entityColorIndex, isDark), [entityColorIndex, isDark]);
+
+    // Helper to get target theme color
+    const getTargetColor = (targetEntity: string) => {
+        let idx = globalColorMap?.[targetEntity];
+        if (idx === undefined) {
+            idx = Math.abs(generateHashCode(targetEntity));
+        }
+        return getEntityTheme(idx, isDark).header;
+    };
 
     const columns = useMemo(() => [
         // 1. Name Column
@@ -56,9 +67,7 @@ export const EntityDetailsTable = ({
                     textColor = currentTheme.header;
                 } else if (fkInfo) {
                     // FK matches target entity color
-                    const targetHash = Math.abs(generateHashCode(fkInfo.targetEntity));
-                    const targetTheme = getEntityTheme(targetHash, isDark);
-                    textColor = targetTheme.header;
+                    textColor = getTargetColor(fkInfo.targetEntity);
                 }
 
                 return (
@@ -185,9 +194,7 @@ export const EntityDetailsTable = ({
                 const fk = getFkInfo(info.row.original.name);
                 if (!fk) return null;
                 
-                // Calculate target entity color
-                const targetHash = Math.abs(generateHashCode(fk.targetEntity));
-                const targetTheme = getEntityTheme(targetHash, isDark);
+                const targetColor = getTargetColor(fk.targetEntity);
                 
                 return (
                     <div className="flex items-center gap-1 text-xs w-full group">
@@ -195,7 +202,7 @@ export const EntityDetailsTable = ({
                         <div className="flex items-center gap-0.5 overflow-hidden">
                             <span 
                                 className="font-bold cursor-pointer hover:underline truncate"
-                                style={{ color: targetTheme.header }} 
+                                style={{ color: targetColor }} 
                                 // STRATEGY: 
                                 // 1. Stop propagation on MouseDown. This prevents the Root 'onMouseDown' (which triggers Z-index update) 
                                 //    from firing immediately. This PROTECTS the link click from being killed by a re-render race condition.
@@ -218,7 +225,7 @@ export const EntityDetailsTable = ({
             }
         })
 
-    ], [keys, getFkInfo, onJumpToEntity, onFocus, isDark, currentTheme]);
+    ], [keys, getFkInfo, onJumpToEntity, onFocus, isDark, currentTheme, globalColorMap]);
 
     const table = useReactTable({
         data: properties,
