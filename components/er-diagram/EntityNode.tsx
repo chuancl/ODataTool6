@@ -367,8 +367,8 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
       {showEntityDetails && (
         <div 
             className="absolute left-[100%] top-0 ml-5 w-[850px] cursor-default z-[2000] animate-appearance-in nodrag nowheel"
-            onMouseDown={() => addActiveEntity(id)}
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={() => addActiveEntity(id)} // Allow bubbling to React Flow to handle selection (and thus z-index)
+            onClick={(e) => e.stopPropagation()} // Stop click to prevent highlighting other nodes
         >
             {/* Popover Container: Dark Mode uses One Dark Pro bg colors */}
             <div 
@@ -382,11 +382,8 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                         ? { backgroundColor: `${theme.header}15`, color: theme.header } 
                         : { backgroundColor: theme.header, borderColor: theme.header }
                     }
-                    onMouseDown={(e) => {
-                        e.stopPropagation();
-                        addActiveEntity(id);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={() => addActiveEntity(id)} // Allow bubbling here too for header clicks
+                    onClick={(e) => e.stopPropagation()} // Stop click
                 >
                     <div className="flex items-center gap-3 font-bold text-sm text-inherit">
                         {/* Icon: Use text-inherit (current color) or explicit style in dark mode */}
