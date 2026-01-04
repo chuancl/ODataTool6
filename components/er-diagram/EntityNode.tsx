@@ -367,8 +367,10 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
       {showEntityDetails && (
         <div 
             className="absolute left-[100%] top-0 ml-5 w-[850px] cursor-default z-[2000] animate-appearance-in nodrag nowheel"
-            onMouseDown={() => addActiveEntity(id)} // Allow bubbling to React Flow to handle selection (and thus z-index)
-            onClick={(e) => e.stopPropagation()} // Stop click to prevent highlighting other nodes
+            // Important: Stop propagation on MouseDown/Click to prevent React Flow from hijacking the event 
+            // (which would cause deselection or unwanted layer reset)
+            onMouseDown={(e) => e.stopPropagation()} 
+            onClick={(e) => e.stopPropagation()} 
         >
             {/* Popover Container: Dark Mode uses One Dark Pro bg colors */}
             <div 
@@ -382,8 +384,11 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                         ? { backgroundColor: `${theme.header}15`, color: theme.header } 
                         : { backgroundColor: theme.header, borderColor: theme.header }
                     }
-                    onMouseDown={() => addActiveEntity(id)} // Allow bubbling here too for header clicks
-                    onClick={(e) => e.stopPropagation()} // Stop click
+                    // Trigger Active/Top Logic on Click (consistent with Card Title)
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        addActiveEntity(id);
+                    }}
                 >
                     <div className="flex items-center gap-3 font-bold text-sm text-inherit">
                         {/* Icon: Use text-inherit (current color) or explicit style in dark mode */}

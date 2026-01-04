@@ -128,7 +128,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
         const newMax = prevMax + 1;
         setNodes((nds) => nds.map(n => {
             if (n.id === id) {
-                return { ...n, zIndex: newMax };
+                // Ensure the node is marked as selected too, so React Flow internals are consistent
+                return { ...n, zIndex: newMax, selected: true };
             }
             return n;
         }));
@@ -158,7 +159,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
         const newMax = prevMax + 1;
         setNodes((nds) => nds.map(n => {
             if (n.id === toId) {
-                return { ...n, zIndex: newMax };
+                return { ...n, zIndex: newMax, selected: true };
             }
             return n;
         }));
