@@ -38,7 +38,9 @@ export const RelationshipEdge = ({
             position: 'absolute',
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             zIndex: 10,
-            pointerEvents: 'all', 
+            pointerEvents: 'all',
+            opacity: style.opacity, // 关键修改：同步连线的透明度
+            transition: 'opacity 0.3s ease' // 添加过渡动画
           }}
           className="nodrag nopan"
         >
