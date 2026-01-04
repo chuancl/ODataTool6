@@ -57,18 +57,82 @@ const ODataERDiagram: React.FC<Props> = (props) => {
 // --------------------------------------------------------
 // Helper Component: Edge Gradients Definition
 // --------------------------------------------------------
-const EdgeGradients = React.memo(({ edges }: { edges: Edge[] }) => {
+const EdgeGradients = React.memo(({ edges, nodes }: { edges: Edge[], nodes: Node[] }) => {
+    const nodeMap = useMemo(() => {
+        return new Map(nodes.map(n => [n.id, n]));
+    }, [nodes]);
+
     return (
         <svg style={{ position: 'absolute', top: 0, left: 0, height: 0, width: 0, pointerEvents: 'none' }}>
             <defs>
                 {edges.map((e) => {
                     if (!e.data?.gradientId || !e.data?.sourceColor || !e.data?.targetColor) return null;
+                    
+                    const sourceNode = nodeMap.get(e.source);
+                    const targetNode = nodeMap.get(e.target);
+                    
+                    // Default to Left-to-Right (Source on Left, Target on Right)
+                    let x1 = "0%"; let y1 = "0%";
+                    let x2 = "100%"; let y2 = "0%";
+
+                    if (sourceNode && targetNode) {
+                        // Calculate Centers to determine relative direction
+                        // Fallback to defaults if dimensions not yet ready
+                        const sW = sourceNode.width || 250; 
+                        const sH = sourceNode.height || 100;
+                        const tW = targetNode.width || 250;
+                        const tH = targetNode.height || 100;
+
+                        const sx = sourceNode.position.x + sW / 2;
+                        const sy = sourceNode.position.y + sH / 2;
+                        const tx = targetNode.position.x + tW / 2;
+                        const ty = targetNode.position.y + tH / 2;
+
+                        const dx = tx - sx;
+                        const dy = ty - sy;
+
+                        // Determine primary axis
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            // Horizontal Dominant
+                            if (dx < 0) {
+                                // Source is to the RIGHT of Target (dx negative)
+                                // Edge visually goes Right -> Left.
+                                // We want the Right side (Source) to have SourceColor.
+                                // We want the Left side (Target) to have TargetColor.
+                                // Linear Gradient "0% -> 100%" maps to "Left -> Right" of the bounding box.
+                                // So 0% (Left) should be TargetColor. 100% (Right) should be SourceColor.
+                                // Stop 0% is SourceColor. Stop 100% is TargetColor.
+                                // So we need to FLIP the vector: Start at Right (100%), End at Left (0%).
+                                x1 = "100%"; x2 = "0%";
+                            }
+                            // else dx > 0: Source Left, Target Right.
+                            // 0% (Left) = SourceColor. 100% (Right) = TargetColor. Correct default.
+                        } else {
+                            // Vertical Dominant
+                            x1 = "0%"; x2 = "0%"; // Reset X gradient
+                            
+                            if (dy > 0) {
+                                // Source Top, Target Bottom.
+                                // Top -> Bottom. 0% (Top) = SourceColor. Correct.
+                                y1 = "0%"; y2 = "100%";
+                            } else {
+                                // Source Bottom, Target Top.
+                                // Bottom -> Top.
+                                // We want Bottom (Source) to be SourceColor. Top (Target) to be TargetColor.
+                                // Gradient "0% -> 100%" maps to "Top -> Bottom".
+                                // 0% (Top) needs TargetColor. 100% (Bottom) needs SourceColor.
+                                // Flip: Start Bottom (100%), End Top (0%).
+                                y1 = "100%"; y2 = "0%";
+                            }
+                        }
+                    }
+
                     return (
                         <linearGradient 
                             key={e.id} 
                             id={e.data.gradientId} 
                             gradientUnits="objectBoundingBox" 
-                            x1="0%" y1="0%" x2="100%" y2="0%"
+                            x1={x1} y1={y1} x2={x2} y2={y2}
                         >
                             <stop offset="0%" stopColor={e.data.sourceColor} />
                             <stop offset="100%" stopColor={e.data.targetColor} />
@@ -734,7 +798,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                 maxZoom={1.5}
             >
                 {/* --- Insert Gradient Defs --- */}
-                <EdgeGradients edges={edges} />
+                <EdgeGradients edges={edges} nodes={nodes} />
 
                 <Controls className="bg-content1 border border-divider shadow-sm" />
                 <Background 
