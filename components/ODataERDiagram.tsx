@@ -131,7 +131,9 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                 // Ensure the node is marked as selected too, so React Flow internals are consistent
                 return { ...n, zIndex: newMax, selected: true };
             }
-            return n;
+            // CRITICAL FIX: Explicitly deselect other nodes. 
+            // If we don't do this, multiple nodes might remain selected, causing React Flow to drag them all together.
+            return { ...n, selected: false };
         }));
         return newMax;
     });
@@ -161,7 +163,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             if (n.id === toId) {
                 return { ...n, zIndex: newMax, selected: true };
             }
-            return n;
+            // CRITICAL FIX: Explicitly deselect others
+            return { ...n, selected: false };
         }));
         return newMax;
     });
