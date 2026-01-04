@@ -9,8 +9,8 @@ import ReactFlow, {
   Edge,
   Node,
   ReactFlowProvider,
-  useReactFlow, // Added useReactFlow for viewport control
-  BackgroundVariant // Added for type safety
+  useReactFlow, 
+  BackgroundVariant 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ELK from 'elkjs/lib/elk.bundled.js';
@@ -22,10 +22,10 @@ import { Zap, FileCode, Download, Copy, Network } from 'lucide-react';
 import { calculateDynamicLayout } from './er-diagram/layout';
 import { EntityNode } from './er-diagram/EntityNode';
 import { DiagramContext } from './er-diagram/DiagramContext';
-import { generateHashCode, getColor, getEntityTheme, computeGraphColoring } from './er-diagram/utils';
+import { generateHashCode, getEntityTheme, computeGraphColoring } from './er-diagram/utils';
 import xmlFormat from 'xml-formatter';
 
-// CodeMirror imports for XML view
+// CodeMirror imports
 import CodeMirror from '@uiw/react-codemirror';
 import { xml } from '@codemirror/lang-xml';
 import { vscodeDark } from '@uiw/codemirror-theme-vscode';
@@ -43,9 +43,6 @@ interface Props {
   isDark?: boolean;
 }
 
-// --------------------------------------------------------
-// Main Component Wrapper (Required for ReactFlowProvider)
-// --------------------------------------------------------
 const ODataERDiagram: React.FC<Props> = (props) => {
     return (
         <ReactFlowProvider>
@@ -54,13 +51,9 @@ const ODataERDiagram: React.FC<Props> = (props) => {
     );
 };
 
-// --------------------------------------------------------
-// Helper Component: Edge Gradients Definition
-// --------------------------------------------------------
+// --- Gradient Definitions ---
 const EdgeGradients = React.memo(({ edges, nodes }: { edges: Edge[], nodes: Node[] }) => {
-    const nodeMap = useMemo(() => {
-        return new Map(nodes.map(n => [n.id, n]));
-    }, [nodes]);
+    const nodeMap = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
 
     return (
         <svg style={{ position: 'absolute', top: 0, left: 0, height: 0, width: 0, pointerEvents: 'none' }}>
@@ -71,13 +64,11 @@ const EdgeGradients = React.memo(({ edges, nodes }: { edges: Edge[], nodes: Node
                     const sourceNode = nodeMap.get(e.source);
                     const targetNode = nodeMap.get(e.target);
                     
-                    // Default to Left-to-Right (Source on Left, Target on Right)
+                    // Default linear gradient vector
                     let x1 = "0%"; let y1 = "0%";
                     let x2 = "100%"; let y2 = "0%";
 
                     if (sourceNode && targetNode) {
-                        // Calculate Centers to determine relative direction
-                        // Fallback to defaults if dimensions not yet ready
                         const sW = sourceNode.width || 250; 
                         const sH = sourceNode.height || 100;
                         const tW = targetNode.width || 250;
@@ -91,39 +82,14 @@ const EdgeGradients = React.memo(({ edges, nodes }: { edges: Edge[], nodes: Node
                         const dx = tx - sx;
                         const dy = ty - sy;
 
-                        // Determine primary axis
                         if (Math.abs(dx) > Math.abs(dy)) {
-                            // Horizontal Dominant
-                            if (dx < 0) {
-                                // Source is to the RIGHT of Target (dx negative)
-                                // Edge visually goes Right -> Left.
-                                // We want the Right side (Source) to have SourceColor.
-                                // We want the Left side (Target) to have TargetColor.
-                                // Linear Gradient "0% -> 100%" maps to "Left -> Right" of the bounding box.
-                                // So 0% (Left) should be TargetColor. 100% (Right) should be SourceColor.
-                                // Stop 0% is SourceColor. Stop 100% is TargetColor.
-                                // So we need to FLIP the vector: Start at Right (100%), End at Left (0%).
-                                x1 = "100%"; x2 = "0%";
-                            }
-                            // else dx > 0: Source Left, Target Right.
-                            // 0% (Left) = SourceColor. 100% (Right) = TargetColor. Correct default.
+                            // Horizontal
+                            if (dx < 0) { x1 = "100%"; x2 = "0%"; } // Right to Left
                         } else {
-                            // Vertical Dominant
-                            x1 = "0%"; x2 = "0%"; // Reset X gradient
-                            
-                            if (dy > 0) {
-                                // Source Top, Target Bottom.
-                                // Top -> Bottom. 0% (Top) = SourceColor. Correct.
-                                y1 = "0%"; y2 = "100%";
-                            } else {
-                                // Source Bottom, Target Top.
-                                // Bottom -> Top.
-                                // We want Bottom (Source) to be SourceColor. Top (Target) to be TargetColor.
-                                // Gradient "0% -> 100%" maps to "Top -> Bottom".
-                                // 0% (Top) needs TargetColor. 100% (Bottom) needs SourceColor.
-                                // Flip: Start Bottom (100%), End Top (0%).
-                                y1 = "100%"; y2 = "0%";
-                            }
+                            // Vertical
+                            x1 = "0%"; x2 = "0%";
+                            if (dy > 0) { y1 = "0%"; y2 = "100%"; } // Top to Bottom
+                            else { y1 = "100%"; y2 = "0%"; } // Bottom to Top
                         }
                     }
 
@@ -144,35 +110,31 @@ const EdgeGradients = React.memo(({ edges, nodes }: { edges: Edge[], nodes: Node
     );
 });
 
-// --------------------------------------------------------
-// Helper: Custom Edge Label Renderer
-// --------------------------------------------------------
+// --- Helper: Create Custom Edge Label JSX ---
 const createEdgeLabel = (sourceLabel: string, targetLabel: string, sourceColor: string, targetColor: string, isDark: boolean) => {
     return (
-        <div style={{
+        <div className="nodrag nopan" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            // Match Entity Node Background Logic (Dark: One Dark Pro BG, Light: White)
-            background: isDark ? '#282c34' : '#ffffff', 
+            background: isDark ? '#21252b' : '#ffffff', 
             padding: '4px 8px',
             borderRadius: '6px',
-            border: `1px solid ${isDark ? '#3e4451' : 'rgba(0,0,0,0.1)'}`, 
-            boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 4px rgba(0,0,0,0.1)',
-            // Match Entity Header Font Styles (Sans-serif, Bold, approx size)
+            border: `1px solid ${isDark ? '#3e4451' : '#e4e4e7'}`, 
+            boxShadow: isDark ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0,0,0,0.05)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
-            fontSize: '12px', // Slightly smaller than 14px header to fit edge context better, but bold
+            fontSize: '11px', 
             fontWeight: 700,
-            pointerEvents: 'none',
             whiteSpace: 'nowrap',
-            zIndex: 10
+            pointerEvents: 'all', // Ensure clicks work if needed
         }}>
             <span style={{ color: sourceColor }}>{sourceLabel}</span>
+            {/* Distinct Separator Color */}
             <span style={{ 
-                color: isDark ? '#ffffff' : '#000000', 
+                color: isDark ? '#abb2bf' : '#71717a', // One Dark Grey / Zinc 500
                 margin: '0 6px',
-                opacity: 0.4,
-                fontWeight: 400 // Separator is lighter
+                fontWeight: 800,
+                opacity: 0.8
             }}>—</span>
             <span style={{ color: targetColor }}>{targetLabel}</span>
         </div>
@@ -182,22 +144,14 @@ const createEdgeLabel = (sourceLabel: string, targetLabel: string, sourceColor: 
 const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlContent, isDark = true }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [isPerformanceMode, setIsPerformanceMode] = useState(false); // 默认关闭性能模式
-  const [showXml, setShowXml] = useState(false); // New: Toggle Raw XML View
-  const [activeEntityIds, setActiveEntityIds] = useState<string[]>([]); // Global Active Entity IDs for Popovers
+  const [isPerformanceMode, setIsPerformanceMode] = useState(false);
+  const [showXml, setShowXml] = useState(false);
+  const [activeEntityIds, setActiveEntityIds] = useState<string[]>([]);
   const [isProcessingLayout, setIsProcessingLayout] = useState(false);
-  
-  // Z-Index Management
-  // Start high enough to be above normal nodes (usually 0-10) and edges (10)
   const [globalMaxZIndex, setGlobalMaxZIndex] = useState(3000);
-
-  // React Flow Hooks
   const { fitView } = useReactFlow();
-
-  // CodeMirror Theme
   const editorTheme = isDark ? vscodeDark : githubLight;
 
-  // Format XML Content
   const formattedXml = useMemo(() => {
     if (!xmlContent) return '';
     try {
@@ -208,30 +162,19 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             lineSeparator: '\n'
         });
     } catch (e) {
-        console.warn("XML Formatting failed, showing raw content", e);
         return xmlContent;
     }
   }, [xmlContent]);
 
-  // Context Helpers
-  // Modified: Clicking an entity brings it to the absolute front by incrementing globalMaxZIndex
   const addActiveEntity = useCallback((id: string) => {
-    // 1. Update Active List (Logic for showing details panel)
     setActiveEntityIds(prev => {
         const others = prev.filter(e => e !== id);
         return [...others, id];
     });
-
-    // 2. Update Z-Index (Logic for bringing to front)
     setGlobalMaxZIndex(prevMax => {
         const newMax = prevMax + 1;
         setNodes((nds) => nds.map(n => {
-            if (n.id === id) {
-                // Ensure the node is marked as selected too, so React Flow internals are consistent
-                return { ...n, zIndex: newMax, selected: true };
-            }
-            // CRITICAL FIX: Explicitly deselect other nodes. 
-            // If we don't do this, multiple nodes might remain selected, causing React Flow to drag them all together.
+            if (n.id === id) return { ...n, zIndex: newMax, selected: true };
             return { ...n, selected: false };
         }));
         return newMax;
@@ -240,12 +183,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
   const removeActiveEntity = useCallback((id: string) => {
     setActiveEntityIds(prev => prev.filter(e => e !== id));
-    // Reset z-index for closed node? Optional, but keeping it high doesn't hurt much.
-    // We can reset it to 0 to be clean.
     setNodes((nds) => nds.map(n => {
-        if (n.id === id) {
-            return { ...n, zIndex: 0 };
-        }
+        if (n.id === id) return { ...n, zIndex: 0 };
         return n;
     }));
   }, [setNodes]);
@@ -255,33 +194,24 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
         const others = prev.filter(e => e !== fromId && e !== toId);
         return [...others, toId];
     });
-    // Bring 'toId' to front
     setGlobalMaxZIndex(prevMax => {
         const newMax = prevMax + 1;
         setNodes((nds) => nds.map(n => {
-            if (n.id === toId) {
-                return { ...n, zIndex: newMax, selected: true };
-            }
-            // CRITICAL FIX: Explicitly deselect others
+            if (n.id === toId) return { ...n, zIndex: newMax, selected: true };
             return { ...n, selected: false };
         }));
         return newMax;
     });
   }, [setNodes]);
 
-  // 用于管理高亮节点 ID 的集合
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
-
-  // Refs for stable state access during callbacks
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
   useEffect(() => { edgesRef.current = edges; }, [edges]);
 
-  // Sync isDark prop and Color Logic to nodes data
-  // This effect ensures that when theme changes, colors are re-calculated based on the graph structure
-  // and the specific palette size for that theme (to minimize collisions).
+  // --- Theme & Color Sync Effect ---
   useEffect(() => {
       if (!schema?.entities) return;
 
@@ -292,17 +222,15 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           data: { 
               ...node.data, 
               isDark,
-              colorIndex: colorMap[node.id], // Inject optimized color index
-              globalColorMap: colorMap // Pass global map for correct foreign key coloring
+              colorIndex: colorMap[node.id],
+              globalColorMap: colorMap
           }
       })));
 
       setEdges((eds) => eds.map(edge => {
-          // Recalculate colors based on graph color map
           const sourceName = edge.source;
           const targetName = edge.target;
           
-          // Use graph coloring index if available, fallback to hash
           const sourceIndex = colorMap[sourceName] ?? Math.abs(generateHashCode(sourceName));
           const targetIndex = colorMap[targetName] ?? Math.abs(generateHashCode(targetName));
           
@@ -312,45 +240,34 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           const sourceColor = sourceTheme.header;
           const targetColor = targetTheme.header;
           
-          // Generate deterministic safe ID for gradient
           const gradientId = `grad_${sourceName.replace(/\W/g,'')}_${targetName.replace(/\W/g,'')}_${edge.id.replace(/\W/g,'')}`;
+          
+          // Get stored label text or fallback to IDs
+          const sourceLabel = edge.data?.sourceLabel || sourceName;
+          const targetLabel = edge.data?.targetLabel || targetName;
 
-          const strokeWidth = 6; 
-          const opacity = isDark ? 0.8 : 1;
-          
-          const sourceLabel = edge.data?.sourceLabel || edge.source;
-          const targetLabel = edge.data?.targetLabel || edge.target;
-          
           return {
               ...edge,
               style: { 
                   ...edge.style, 
                   stroke: `url(#${gradientId})`, 
-                  strokeWidth: strokeWidth, 
-                  opacity: opacity 
+                  strokeWidth: 6, 
+                  opacity: isDark ? 0.8 : 1 
               },
-              markerStart: (typeof edge.markerStart === 'object' && edge.markerStart) ? { 
-                  ...edge.markerStart, 
-                  color: sourceColor 
-              } : edge.markerStart,
-              markerEnd: (typeof edge.markerEnd === 'object' && edge.markerEnd) ? { 
-                  ...edge.markerEnd, 
-                  color: targetColor 
-              } : edge.markerEnd,
-              // Use Custom JSX Label via Helper
+              markerStart: (typeof edge.markerStart === 'object' && edge.markerStart) ? { ...edge.markerStart, color: sourceColor } : edge.markerStart,
+              markerEnd: (typeof edge.markerEnd === 'object' && edge.markerEnd) ? { ...edge.markerEnd, color: targetColor } : edge.markerEnd,
+              
+              // Apply Custom JSX Label
               label: createEdgeLabel(sourceLabel, targetLabel, sourceColor, targetColor, isDark),
-              data: {
-                  ...edge.data,
-                  sourceColor,
-                  targetColor,
-                  gradientId
-              }
+              // Clear default styling to prevent conflicts
+              labelStyle: undefined,
+              labelBgStyle: undefined,
+              
+              data: { ...edge.data, sourceColor, targetColor, gradientId }
           };
       }));
-  }, [isDark, setNodes, setEdges, schema]); // Depend on schema to re-color if data changes
+  }, [isDark, setNodes, setEdges, schema]);
 
-
-  // 提取布局更新逻辑
   const performLayoutUpdate = useCallback((draggedNodes: Node[] = []) => {
       const currentNodes = nodesRef.current;
       const currentEdges = edgesRef.current;
@@ -358,9 +275,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
       const draggedMap = new Map(draggedNodes.map(n => [n.id, n]));
       const mergedNodes = currentNodes.map(n => {
           const dragged = draggedMap.get(n.id);
-          if (dragged) {
-              return { ...n, position: dragged.position, positionAbsolute: dragged.positionAbsolute };
-          }
+          if (dragged) return { ...n, position: dragged.position, positionAbsolute: dragged.positionAbsolute };
           return n;
       });
 
@@ -369,41 +284,29 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
       setEdges(newEdges);
   }, [setNodes, setEdges]);
 
-  // [REAL-TIME DRAG]
   const onNodeDrag = useCallback((event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
     if (isPerformanceMode) return; 
     performLayoutUpdate(draggedNodes);
   }, [isPerformanceMode, performLayoutUpdate]); 
 
-  // [DRAG STOP]
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
       performLayoutUpdate(draggedNodes);
   }, [performLayoutUpdate]);
 
-  // Generate Diagram Layout (Extracted for Reset functionality)
   const generateDiagram = useCallback(async () => {
     if (!schema || !schema.entities) {
-        setNodes([]);
-        setEdges([]);
-        return;
+        setNodes([]); setEdges([]); return;
     }
     
     setIsProcessingLayout(true);
 
     try {
         const { entities, namespace } = schema;
-        
-        if (entities.length === 0) {
-            setIsProcessingLayout(false);
-            return;
-        }
+        if (entities.length === 0) { setIsProcessingLayout(false); return; }
 
-        // 1. 数据准备
         const fieldColorMap: Record<string, Record<string, string>> = {}; 
         const rawEdges: any[] = [];
         const processedPairs = new Set<string>();
-
-        // Pre-calculate colors for initial render to avoid flicker
         const colorMap = computeGraphColoring(entities, isDark);
 
         const setFieldColor = (entityName: string, fieldName: string, color: string) => {
@@ -423,17 +326,13 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                 if (targetName && entities.find(n => n.name === targetName)) {
                     const pairKey = [entity.name, targetName].sort().join('::');
                     
-                    // --- Calculate Gradient Colors using Graph Coloring ---
                     const sourceIndex = colorMap[entity.name] ?? Math.abs(generateHashCode(entity.name));
                     const targetIndex = colorMap[targetName] ?? Math.abs(generateHashCode(targetName));
                     
                     const sourceTheme = getEntityTheme(sourceIndex, isDark);
                     const targetTheme = getEntityTheme(targetIndex, isDark);
-                    
                     const sourceColor = sourceTheme.header;
                     const targetColor = targetTheme.header;
-                    
-                    // Use sourceColor for field highlighting
                     
                     if (nav.constraints && nav.constraints.length > 0) {
                         nav.constraints.forEach((c: any) => {
@@ -447,29 +346,24 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
                     const sMult = nav.sourceMultiplicity || '?';
                     const tMult = nav.targetMultiplicity || '?';
-                    const label = `${entity.name} (${sMult} - ${tMult}) ${targetName}`;
                     const edgeId = `${entity.name}-${targetName}-${nav.name}`;
                     const gradientId = `grad_${entity.name.replace(/\W/g,'')}_${targetName.replace(/\W/g,'')}_${edgeId.replace(/\W/g,'')}`;
+                    const sourceLabel = `${entity.name} (${sMult}`;
+                    const targetLabel = `${tMult}) ${targetName}`;
 
                     rawEdges.push({
                         id: edgeId,
                         source: entity.name,
                         target: targetName,
-                        label: label, 
-                        data: { 
-                            sourceColor,
-                            targetColor,
-                            gradientId,
-                            sourceLabel: `${entity.name} (${sMult}`,
-                            targetLabel: `${tMult}) ${targetName}`
-                        }
+                        // Initial label creation
+                        label: createEdgeLabel(sourceLabel, targetLabel, sourceColor, targetColor, isDark),
+                        data: { sourceColor, targetColor, gradientId, sourceLabel, targetLabel }
                     });
                 }
             }
           });
         });
 
-        // 2. 初始化节点
         const initialNodesRaw = entities.map((e) => ({
           id: e.name,
           type: 'entity',
@@ -482,8 +376,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             fieldColors: fieldColorMap[e.name] || {},
             dynamicHandles: [],
             isDark: isDark,
-            colorIndex: colorMap[e.name], // Inject computed color index
-            globalColorMap: colorMap // Inject color map
+            colorIndex: colorMap[e.name], 
+            globalColorMap: colorMap 
           },
           position: { x: 0, y: 0 }
         }));
@@ -496,7 +390,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             return { width: 300, height: height };
         };
 
-        // 3. ELK 布局计算
         const elkGraph = {
           id: 'root',
           layoutOptions: {
@@ -537,9 +430,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             markerStart: { type: MarkerType.ArrowClosed, color: e.data.sourceColor },
             markerEnd: { type: MarkerType.ArrowClosed, color: e.data.targetColor },
             animated: false,
-            style: { stroke: `url(#${e.data.gradientId})`, strokeWidth: 6, opacity: isDark ? 0.8 : 1 }, // Modified: 6px width
-            // Apply Custom JSX Label initially as well
-            label: createEdgeLabel(e.data.sourceLabel, e.data.targetLabel, e.data.sourceColor, e.data.targetColor, isDark),
+            style: { stroke: `url(#${e.data.gradientId})`, strokeWidth: 6, opacity: isDark ? 0.8 : 1 }, 
+            label: e.label, // Use pre-created JSX label
             data: e.data
         }));
 
@@ -552,14 +444,12 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
     } finally {
         setIsProcessingLayout(false);
     }
-  }, [schema, setNodes, setEdges, isDark]); // Added isDark dependency to regenerate styles if theme changes and layout is recalced
+  }, [schema, setNodes, setEdges, isDark]); 
 
-  // Initial load
   useEffect(() => {
     generateDiagram();
   }, [generateDiagram]);
 
-  // 处理节点点击事件：多选/反选逻辑
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     event.stopPropagation();
     const isCtrlPressed = event.ctrlKey || event.metaKey;
@@ -567,7 +457,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
     setHighlightedIds((prev) => {
         const next = new Set(isCtrlPressed ? prev : []);
-
         if (isCtrlPressed && prev.has(node.id)) {
             next.delete(node.id);
         } else {
@@ -592,7 +481,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               style: { ...n.style, opacity: 1, filter: 'none' }
           })));
           setEdges((eds) => eds.map(e => {
-            // Restore gradient style
             const gradientStroke = `url(#${e.data?.gradientId})`;
             const targetColor = e.data?.targetColor || '#999';
             const sourceColor = e.data?.sourceColor || '#999';
@@ -600,7 +488,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             return {
               ...e, 
               animated: false, 
-              style: { stroke: gradientStroke, strokeWidth: 6, opacity: isDark ? 0.8 : 1 }, // Modified: 6px width
+              style: { stroke: gradientStroke, strokeWidth: 6, opacity: isDark ? 0.8 : 1 },
               markerStart: { type: MarkerType.ArrowClosed, color: sourceColor },
               markerEnd: { type: MarkerType.ArrowClosed, color: targetColor },
               zIndex: 0
@@ -639,14 +527,15 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
               style: { 
                   ...e.style, 
                   stroke: stroke,
-                  strokeWidth: isVisible ? 6 : 1, // Modified: 6px width for visible edges
+                  strokeWidth: isVisible ? 6 : 1, 
                   opacity: isVisible ? 1 : 0.1, 
                   zIndex: isVisible ? 10 : 0
               },
               markerStart: { type: MarkerType.ArrowClosed, color: startMarkerColor },
               markerEnd: { type: MarkerType.ArrowClosed, color: markerColor },
-              // Dim the label if not visible
-              labelStyle: isVisible ? undefined : { opacity: 0 },
+              // IMPORTANT: When highlighting, we keep the custom label but might want to dim it if not visible
+              // ReactFlow handles label visibility based on edge opacity usually, or we can conditional render it
+              // For now, let's keep the label as is, since edge opacity handles the "dimming" effect
           };
       }));
   }, [highlightedIds, setNodes, setEdges, isDark]);
@@ -660,7 +549,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
      }, 100);
   }, [generateDiagram, fitView]);
 
-  // Helper for XML View
   const handleDownloadXml = () => {
       if (!formattedXml) return;
       const blob = new Blob([formattedXml], { type: 'application/xml' });
@@ -678,7 +566,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
   };
 
   return (
-    // 修改处：亮色模式下使用 #C7EDCC (Mint Green) 背景，暗色模式使用 One Dark Pro 背景 #21252b
     <div className={`w-full h-full relative ${isDark ? 'bg-[#21252b]' : 'bg-[#C7EDCC]'}`}>
       {(isLoading || isProcessingLayout) && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm gap-4">
@@ -695,9 +582,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
         </div>
       )}
 
-      {/* Controls Overlay (Top Right) */}
+      {/* Controls Overlay */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
-        {/* Toggle View Box: Dark mode uses One Dark Pro palette */}
         <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border shadow-sm transition-colors ${
             isDark 
             ? "bg-[#2c313a] border-[#3e4451] text-[#abb2bf]" 
@@ -724,7 +610,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
 
         {!showXml && (
             <>
-                {/* Performance Mode Box */}
                 <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border shadow-sm transition-colors ${
                     isDark 
                     ? "bg-[#2c313a] border-[#3e4451] text-[#abb2bf]" 
@@ -749,7 +634,6 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                         }}
                     />
                 </div>
-                {/* Reset View Button */}
                 <Button 
                     size="sm" 
                     color={isDark ? "default" : "primary"}
@@ -763,7 +647,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
         )}
       </div>
 
-      {/* --- XML Viewer View --- */}
+      {/* XML Viewer */}
       <div 
         className="w-full h-full absolute inset-0 bg-content1 z-0 flex flex-col"
         style={{ display: showXml ? 'flex' : 'none' }}
@@ -796,7 +680,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           </div>
       </div>
 
-      {/* --- Diagram View --- */}
+      {/* Diagram View */}
       <div className="w-full h-full" style={{ display: !showXml ? 'block' : 'none' }}>
         <DiagramContext.Provider value={{ activeEntityIds, addActiveEntity, removeActiveEntity, switchActiveEntity }}>
             <ReactFlow
@@ -814,17 +698,13 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                 minZoom={0.1}
                 maxZoom={1.5}
             >
-                {/* --- Insert Gradient Defs --- */}
                 <EdgeGradients edges={edges} nodes={nodes} />
-
                 <Controls className="bg-content1 border border-divider shadow-sm" />
                 <Background 
-                    // 修改处：亮色模式下使用 #047857 (Emerald 700) 网点，与薄荷绿背景形成对比。暗色下使用 One Dark Pro Gutter color (#3e4451)
                     color={isDark ? "#3e4451" : "#047857"} 
                     gap={20} 
                     size={isDark ? 1 : 2} 
                     variant={isDark ? undefined : BackgroundVariant.Dots}
-                    // 修改处：亮色模式下使用 #C7EDCC (Mint Green) 背景
                     style={isDark ? {} : { backgroundColor: '#C7EDCC' }}
                 />
             </ReactFlow>
