@@ -144,6 +144,41 @@ const EdgeGradients = React.memo(({ edges, nodes }: { edges: Edge[], nodes: Node
     );
 });
 
+// --------------------------------------------------------
+// Helper: Custom Edge Label Renderer
+// --------------------------------------------------------
+const createEdgeLabel = (sourceLabel: string, targetLabel: string, sourceColor: string, targetColor: string, isDark: boolean) => {
+    return (
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            // Match Entity Node Background Logic (Dark: One Dark Pro BG, Light: White)
+            background: isDark ? '#282c34' : '#ffffff', 
+            padding: '4px 8px',
+            borderRadius: '6px',
+            border: `1px solid ${isDark ? '#3e4451' : 'rgba(0,0,0,0.1)'}`, 
+            boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 4px rgba(0,0,0,0.1)',
+            // Match Entity Header Font Styles (Sans-serif, Bold, approx size)
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            fontSize: '12px', // Slightly smaller than 14px header to fit edge context better, but bold
+            fontWeight: 700,
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+            zIndex: 10
+        }}>
+            <span style={{ color: sourceColor }}>{sourceLabel}</span>
+            <span style={{ 
+                color: isDark ? '#ffffff' : '#000000', 
+                margin: '0 6px',
+                opacity: 0.4,
+                fontWeight: 400 // Separator is lighter
+            }}>—</span>
+            <span style={{ color: targetColor }}>{targetLabel}</span>
+        </div>
+    );
+};
+
 const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlContent, isDark = true }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -280,14 +315,12 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
           // Generate deterministic safe ID for gradient
           const gradientId = `grad_${sourceName.replace(/\W/g,'')}_${targetName.replace(/\W/g,'')}_${edge.id.replace(/\W/g,'')}`;
 
-          const strokeWidth = 6; // Modified: Increased to 6px as requested
+          const strokeWidth = 6; 
           const opacity = isDark ? 0.8 : 1;
           
           const sourceLabel = edge.data?.sourceLabel || edge.source;
           const targetLabel = edge.data?.targetLabel || edge.target;
           
-          const separatorColor = isDark ? '#a1a1aa' : '#52525b'; 
-
           return {
               ...edge,
               style: { 
@@ -304,25 +337,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
                   ...edge.markerEnd, 
                   color: targetColor 
               } : edge.markerEnd,
-              label: (
-                  <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: isDark ? '#282c34' : '#ffffff', 
-                      padding: '2px 6px',
-                      borderRadius: '6px',
-                      border: `1px solid ${isDark ? '#3e4451' : 'rgba(0,0,0,0.1)'}`, 
-                      boxShadow: isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
-                      fontFamily: 'monospace',
-                      fontSize: '10px',
-                      pointerEvents: 'none'
-                  }}>
-                      <span style={{ color: sourceColor, fontWeight: 'bold' }}>{sourceLabel}</span>
-                      <span style={{ color: separatorColor, margin: '0 4px' }}>-</span>
-                      <span style={{ color: targetColor, fontWeight: 'bold' }}>{targetLabel}</span>
-                  </div>
-              ),
+              // Use Custom JSX Label via Helper
+              label: createEdgeLabel(sourceLabel, targetLabel, sourceColor, targetColor, isDark),
               data: {
                   ...edge.data,
                   sourceColor,
@@ -522,9 +538,8 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
             markerEnd: { type: MarkerType.ArrowClosed, color: e.data.targetColor },
             animated: false,
             style: { stroke: `url(#${e.data.gradientId})`, strokeWidth: 6, opacity: isDark ? 0.8 : 1 }, // Modified: 6px width
-            label: e.label,
-            labelStyle: { fill: e.data.sourceColor, fontWeight: isDark ? 400 : 700, fontSize: 10 },
-            labelBgStyle: { fill: isDark ? '#ffffff' : '#f4f4f5', fillOpacity: 0.8, rx: 4, ry: 4 },
+            // Apply Custom JSX Label initially as well
+            label: createEdgeLabel(e.data.sourceLabel, e.data.targetLabel, e.data.sourceColor, e.data.targetColor, isDark),
             data: e.data
         }));
 
@@ -537,7 +552,7 @@ const ODataERDiagramContent: React.FC<Props> = ({ url, schema, isLoading, xmlCon
     } finally {
         setIsProcessingLayout(false);
     }
-  }, [schema, setNodes, setEdges]); 
+  }, [schema, setNodes, setEdges, isDark]); // Added isDark dependency to regenerate styles if theme changes and layout is recalced
 
   // Initial load
   useEffect(() => {
