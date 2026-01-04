@@ -177,24 +177,10 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
 
             // --- COLOR LOGIC ---
             // 1. Calculate FK Target Color
-            // Try to look up graph color from global map if possible, but Node doesn't know full graph here.
-            // However, we can use hash fallback for consistent coloring of "other" entities if data not present.
-            // Ideally, we'd pass a color map, but calculating hash is consistent enough for link icons.
-            // NOTE: The main node color comes from data.colorIndex (optimized).
-            // For link icons, we might not have the target's colorIndex easily available without a lookup context.
-            // Fallback to hash for icon color is acceptable or we could inject a lookup table. 
-            // For simplicity and performance, we'll keep using hash-based coloring for the small icons, 
-            // OR use the current node's theme color if it's a key.
-            
             let propTextColor = undefined;
             if (isKey) {
                 propTextColor = theme.header; // Use Current Entity Color
             } else if (fkInfo) {
-                // For FKs, we use the FK target color. 
-                // Since we don't have the target's optimized color index here, 
-                // we'll stick to hash-based color for the *Icon* to ensure it at least has A color.
-                // Or better: The main requirement is "Direct relationships use different colors".
-                // The edge line handles the visual connection. The icon is just a hint.
                 const fkHashCode = Math.abs(generateHashCode(fkInfo.targetEntity));
                 propTextColor = getEntityTheme(fkHashCode, isDark).header;
             }
@@ -388,15 +374,24 @@ export const EntityNode = React.memo(({ id, data, selected }: NodeProps) => {
                 className={`rounded-lg overflow-hidden flex flex-col max-h-[600px] border ${isDark ? 'bg-[#282c34] border-[#3e4451] shadow-2xl ring-1 ring-black/10' : 'bg-content1 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.15)] border-2'}`} 
                 style={isLightMode ? { borderColor: theme.header } : {}}
             >
-                {/* Header */}
+                {/* Header: Modified to match Node Header Color in Dark Mode */}
                 <div 
-                    className={`flex justify-between items-center p-3 border-b shrink-0 ${isDark ? 'bg-[#21252b] border-[#3e4451] text-[#abb2bf]' : 'text-white border-divider'}`}
-                    style={isLightMode ? { backgroundColor: theme.header, borderColor: theme.header } : {}}
+                    className={`flex justify-between items-center p-3 border-b shrink-0 ${isDark ? 'border-[#3e4451]' : 'text-white border-divider'}`}
+                    style={isDark 
+                        ? { backgroundColor: `${theme.header}15`, color: theme.header } 
+                        : { backgroundColor: theme.header, borderColor: theme.header }
+                    }
                 >
                     <div className="flex items-center gap-3 font-bold text-sm text-inherit">
-                        <Database size={18} className={isDark ? "text-[#61afef]" : "text-white"} />
+                        {/* Icon: Use text-inherit (current color) or explicit style in dark mode */}
+                        <Database size={18} className={isDark ? "" : "text-white"} style={isDark ? { color: theme.header } : {}} />
                         {data.label}
-                        <span className={`text-xs font-normal px-1.5 rounded border ${isDark ? "text-[#5c6370] bg-[#282c34] border-[#3e4451]" : "text-white/80 bg-white/20 border-white/30"}`}>{data.namespace}</span>
+                        <span 
+                            className={`text-xs font-normal px-1.5 rounded border ${isDark ? "bg-[#282c34]/50 border-current" : "text-white/80 bg-white/20 border-white/30"}`}
+                            style={isDark ? { borderColor: theme.header, opacity: 0.8 } : {}}
+                        >
+                            {data.namespace}
+                        </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button size="sm" variant={isDark ? "flat" : "solid"} className={isLightMode ? "bg-white/20 text-white hover:bg-white/30" : ""} color="primary" onPress={handleExportCSV} startContent={<Download size={14} />}>
