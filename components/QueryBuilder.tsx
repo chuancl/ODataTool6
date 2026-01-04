@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, Key } from 'react';
 import { ODataVersion, ParsedSchema } from '@/utils/odata-helper';
 
@@ -131,6 +132,7 @@ const QueryBuilder: React.FC<Props> = ({ url, version, isDark, schema }) => {
   return (
     <div className="flex flex-col gap-4 h-full">
       <ParamsForm 
+          isDark={isDark}
           entitySets={entitySets}
           selectedEntity={selectedEntity}
           onEntityChange={handleEntityChange}
@@ -146,6 +148,7 @@ const QueryBuilder: React.FC<Props> = ({ url, version, isDark, schema }) => {
       />
 
       <UrlBar 
+          isDark={isDark}
           generatedUrl={generatedUrl}
           setGeneratedUrl={setGeneratedUrl}
           loading={loading}

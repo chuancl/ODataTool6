@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, Key } from 'react';
 import { Select, SelectItem } from "@nextui-org/select";
 import { ChevronRight, ChevronDown } from 'lucide-react';
@@ -6,6 +7,7 @@ import { EntityType, ParsedSchema } from '@/utils/odata-helper';
 type Selection = "all" | Set<Key>;
 
 interface ExpandSelectProps {
+    isDark: boolean;
     currentSchema: EntityType | null;
     schema: ParsedSchema | null;
     expand: string;
@@ -13,6 +15,7 @@ interface ExpandSelectProps {
 }
 
 export const ExpandSelect: React.FC<ExpandSelectProps> = ({
+    isDark,
     currentSchema,
     schema,
     expand,
@@ -122,13 +125,15 @@ export const ExpandSelect: React.FC<ExpandSelectProps> = ({
     };
 
     const commonClassNames = {
-        trigger: "h-14 min-h-14 border-2 border-default-200 data-[hover=true]:border-default-400",
+        trigger: `h-14 min-h-14 ${isDark ? 'border-2 border-default-200 data-[hover=true]:border-default-400' : 'bg-default-100/50 hover:bg-default-200/50'}`,
         label: "text-[10px] font-medium text-default-500",
         value: "text-small"
     };
 
+    const variant = isDark ? "bordered" : "faded";
+
     if (!currentSchema) {
-        return <Select isDisabled label="展开 ($expand)" placeholder="需先选择实体" variant="bordered" classNames={commonClassNames}><SelectItem key="placeholder">Placeholder</SelectItem></Select>;
+        return <Select isDisabled label="展开 ($expand)" placeholder="需先选择实体" variant={variant} classNames={commonClassNames}><SelectItem key="placeholder">Placeholder</SelectItem></Select>;
     }
 
     return (
@@ -138,7 +143,7 @@ export const ExpandSelect: React.FC<ExpandSelectProps> = ({
             selectionMode="multiple"
             selectedKeys={currentExpandKeys}
             onSelectionChange={handleExpandChange}
-            variant="bordered"
+            variant={variant}
             classNames={commonClassNames}
             items={expandItems}
         >

@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Switch } from "@nextui-org/switch";
 import { cn } from "@nextui-org/theme";
 import { Filter, XCircle } from 'lucide-react';
 
 interface PaginationControlsProps {
+    isDark: boolean;
     filter: string;
     onOpenFilter: () => void;
     onClearFilter: () => void;
@@ -16,13 +18,18 @@ interface PaginationControlsProps {
 }
 
 export const PaginationControls: React.FC<PaginationControlsProps> = ({
+    isDark,
     filter, onOpenFilter, onClearFilter,
     top, setTop,
     skip, setSkip,
     count, setCount
 }) => {
+    const containerClass = isDark
+        ? "border-2 border-default-200 bg-content1 hover:border-default-400"
+        : "border border-default-100 bg-default-100/50 hover:bg-default-200/50 shadow-inner";
+
     return (
-        <div className="flex items-center border-2 border-default-200 rounded-xl px-3 bg-content1 hover:border-default-400 transition-colors h-14 w-full overflow-hidden relative shadow-sm">
+        <div className={`flex items-center rounded-medium px-3 transition-colors h-14 w-full overflow-hidden relative ${containerClass}`}>
             
             {/* 1. Filter Section (Flex Grow + min-w-0 to prevent overflow) */}
             <div 

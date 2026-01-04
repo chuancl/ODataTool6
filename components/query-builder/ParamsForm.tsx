@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, Key } from 'react';
 import { Select, SelectItem } from "@nextui-org/select";
 import { EntityType, ParsedSchema } from '@/utils/odata-helper';
@@ -15,6 +16,7 @@ export type { SortItem };
 type Selection = "all" | Set<Key>;
 
 interface ParamsFormProps {
+    isDark: boolean;
     entitySets: string[];
     selectedEntity: string;
     onEntityChange: (keys: Selection) => void;
@@ -36,6 +38,7 @@ interface ParamsFormProps {
 }
 
 export const ParamsForm: React.FC<ParamsFormProps> = ({
+    isDark,
     entitySets, selectedEntity, onEntityChange,
     filter, setFilter,
     select, setSelect,
@@ -101,8 +104,12 @@ export const ParamsForm: React.FC<ParamsFormProps> = ({
         return extraProps;
     }, [expand, currentSchema, schema]);
 
+    const containerStyle = isDark
+        ? "bg-content1 shadow-sm border border-divider"
+        : "bg-white/70 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)]";
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 rounded-xl bg-content1 shadow-sm border border-divider shrink-0">
+        <div className={`grid grid-cols-1 md:grid-cols-12 gap-4 p-5 rounded-2xl shrink-0 transition-all ${containerStyle}`}>
             {/* Filter Modal Component */}
             <FilterBuilderModal 
                 isOpen={isFilterModalOpen}
@@ -122,12 +129,12 @@ export const ParamsForm: React.FC<ParamsFormProps> = ({
                     placeholder="选择实体"
                     selectedKeys={selectedEntity ? [selectedEntity] : []}
                     onSelectionChange={onEntityChange}
-                    variant="bordered"
+                    variant={isDark ? "bordered" : "faded"}
                     // 移除 size="sm" 以使用默认高度 (通常也是 h-14 左右，与我们的 Toolbar 对齐)
                     // 或者显式设置高度 class
                     className="w-full"
                     classNames={{
-                        trigger: "h-14 min-h-14 border-2 border-default-200 data-[hover=true]:border-default-400", // Force height to match toolbar
+                        trigger: `h-14 min-h-14 ${isDark ? 'border-2 border-default-200 data-[hover=true]:border-default-400' : 'bg-default-100/50 hover:bg-default-200/50'}`, // Force height to match toolbar
                         label: "text-[10px] font-medium text-default-500",
                         value: "text-small"
                     }}
@@ -139,9 +146,10 @@ export const ParamsForm: React.FC<ParamsFormProps> = ({
                 {/* 2. 组合工具栏：过滤 + 分页 + 计数 */}
                 {/* 
                     这个组件内部高度设置为 h-14 (56px)，与上面的 Select 对齐。
-                    边框样式也模拟了 Select variant="bordered"。
+                    边框样式也模拟了 Select variant="bordered" 或 "faded"。
                 */}
                 <PaginationControls 
+                    isDark={isDark}
                     filter={filter}
                     onOpenFilter={() => setIsFilterModalOpen(true)}
                     onClearFilter={() => setFilter('')}
@@ -157,6 +165,7 @@ export const ParamsForm: React.FC<ParamsFormProps> = ({
                 
                 {/* 3. 排序 ($orderby) - 自动占 2 个格子 (SortFields 内部有两个 Select) */}
                 <SortFields 
+                    isDark={isDark}
                     currentSchema={currentSchema}
                     expandedProperties={expandedEntityProperties}
                     sortItems={sortItems}
@@ -165,6 +174,7 @@ export const ParamsForm: React.FC<ParamsFormProps> = ({
 
                 {/* 4. 字段选择 ($select) */}
                 <SelectFields 
+                    isDark={isDark}
                     currentSchema={currentSchema}
                     expandedProperties={expandedEntityProperties}
                     select={select}
@@ -173,6 +183,7 @@ export const ParamsForm: React.FC<ParamsFormProps> = ({
 
                 {/* 5. 展开关联 ($expand) */}
                 <ExpandSelect 
+                    isDark={isDark}
                     currentSchema={currentSchema}
                     schema={schema}
                     expand={expand}

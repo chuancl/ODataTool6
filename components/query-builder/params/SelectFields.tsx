@@ -1,3 +1,4 @@
+
 import React, { useMemo, Key } from 'react';
 import { Input } from "@nextui-org/input";
 import { Select, SelectItem } from "@nextui-org/select";
@@ -7,6 +8,7 @@ import { EntityType } from '@/utils/odata-helper';
 type Selection = "all" | Set<Key>;
 
 interface SelectFieldsProps {
+    isDark: boolean;
     currentSchema: EntityType | null;
     expandedProperties: any[];
     select: string;
@@ -14,6 +16,7 @@ interface SelectFieldsProps {
 }
 
 export const SelectFields: React.FC<SelectFieldsProps> = ({
+    isDark,
     currentSchema,
     expandedProperties,
     select,
@@ -73,13 +76,15 @@ export const SelectFields: React.FC<SelectFieldsProps> = ({
     };
 
     const commonClassNames = {
-        trigger: "h-14 min-h-14 border-2 border-default-200 data-[hover=true]:border-default-400",
+        trigger: `h-14 min-h-14 ${isDark ? 'border-2 border-default-200 data-[hover=true]:border-default-400' : 'bg-default-100/50 hover:bg-default-200/50'}`,
         label: "text-[10px] font-medium text-default-500",
         value: "text-small"
     };
 
+    const variant = isDark ? "bordered" : "faded";
+
     if (!currentSchema) {
-        return <Input label="字段 ($select)" placeholder="需先选择实体" isDisabled variant="bordered" classNames={{ inputWrapper: commonClassNames.trigger, label: commonClassNames.label }} />;
+        return <Input label="字段 ($select)" placeholder="需先选择实体" isDisabled variant={variant} classNames={{ inputWrapper: commonClassNames.trigger, label: commonClassNames.label }} />;
     }
 
     return (
@@ -89,7 +94,7 @@ export const SelectFields: React.FC<SelectFieldsProps> = ({
             selectionMode="multiple"
             selectedKeys={currentSelectKeys}
             onSelectionChange={handleSelectChange}
-            variant="bordered"
+            variant={variant}
             classNames={commonClassNames}
             items={selectItems}
             renderValue={(items) => (
